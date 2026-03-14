@@ -1,0 +1,173 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body, table, td, a {
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100% !important;
+            background-color: #f4f7f6;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        .wrapper {
+            width: 100%;
+            background-color: #f4f7f6;
+            padding: 20px 0;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+
+        .header {
+            background-color: #1e293b;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        /* Metrics Dashboard CSS */
+        .metrics-container {
+            text-align: center;
+            padding: 25px 30px 5px 30px;
+            background-color: #ffffff;
+        }
+
+        .metric-card {
+            display: inline-block;
+            width: 46%;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 1%;
+            text-align: left;
+            vertical-align: top;
+            box-sizing: border-box;
+        }
+
+            .metric-card h3 {
+                margin: 0 0 10px 0;
+                font-size: 15px;
+                color: #0f172a;
+                border-bottom: 2px solid #e2e8f0;
+                padding-bottom: 6px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .metric-card p {
+                margin: 6px 0;
+                font-size: 14px;
+                color: #475569;
+            }
+
+        .metric-value {
+            color: #dc2626;
+            font-weight: bold;
+            font-size: 15px;
+            float: right;
+        }
+
+        .content {
+            padding: 10px 40px 30px 40px;
+            line-height: 1.6;
+            color: #333333;
+        }
+
+        h1, h2, h3 {
+            color: #1e293b;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 8px;
+            margin-top: 25px;
+        }
+
+        strong {
+            color: #dc2626;
+        }
+
+        ul, ol {
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        .footer {
+            background-color: #f8fafc;
+            color: #64748b;
+            text-align: center;
+            padding: 20px;
+            font-size: 13px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        @media screen and (max-width: 600px) {
+            .metric-card {
+                width: 100%;
+                display: block;
+                margin: 10px 0;
+            }
+
+            .content, .metrics-container {
+                padding: 20px;
+            }
+
+            .wrapper {
+                padding: 0;
+            }
+
+            .container {
+                border-radius: 0;
+                border: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="container">
+            <div class="header">
+                <h2 style="color: #ffffff; margin: 0; font-size: 26px; letter-spacing: 1px;">AI STRENGTH COACH</h2>
+                <p style="color: #94a3b8; margin-top: 5px; font-size: 15px;">Biologically-Optimized Plan for {{DATE}}</p>
+            </div>
+
+            <div class="metrics-container">
+                <div class="metric-card">
+                    <h3>📊 InBody Scan</h3>
+                    <p>Weight: <span class="metric-value">{{INBODY_WEIGHT}} kg</span></p>
+                    <p>Body Fat: <span class="metric-value">{{INBODY_BF}}%</span></p>
+                    <p>Skel. Muscle: <span class="metric-value">{{INBODY_SMM}} kg</span></p>
+                </div>
+                <div class="metric-card">
+                    <h3>🫀 Daily Vitals</h3>
+                    <p>Last Sleep: <span class="metric-value">{{VITALS_SLEEP}}</span></p>
+                    <p>Resting HR: <span class="metric-value">{{VITALS_RHR}} bpm</span></p>
+                    <p>Past 24h Steps: <span class="metric-value">{{VITALS_STEPS}}</span></p>
+                </div>
+            </div>
+
+            <div class="content">
+                {{WORKOUT_CONTENT}}
+            </div>
+
+            <div class="footer">
+                Telemetry securely synced via Health Connect & Gabit Ring
+            </div>
+        </div>
+    </div>
+</body>
+</html>
