@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,160 +13,54 @@
             margin: 0;
             padding: 0;
             width: 100% !important;
-            background-color: #f4f7f6;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
-
-        .wrapper {
-            width: 100%;
-            background-color: #f4f7f6;
-            padding: 20px 0;
-        }
-
-        .container {
-            max-width: 700px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid #e2e8f0;
-        }
-
-        .header {
-            background-color: #1e293b;
-            padding: 30px 20px;
-            text-align: center;
-        }
-
-        /* Metrics Dashboard CSS */
-        .metrics-container {
-            text-align: center;
-            padding: 25px 30px 5px 30px;
-            background-color: #ffffff;
-        }
-
-        .metric-card {
-            display: inline-block;
-            width: 46%;
-            background-color: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 1%;
-            text-align: left;
-            vertical-align: top;
-            box-sizing: border-box;
-        }
-
-            .metric-card h3 {
-                margin: 0 0 10px 0;
-                font-size: 15px;
-                color: #0f172a;
-                border-bottom: 2px solid #e2e8f0;
-                padding-bottom: 6px;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-
-            .metric-card p {
-                margin: 6px 0;
-                font-size: 14px;
-                color: #475569;
-            }
-
-        .metric-value {
-            color: #dc2626;
-            font-weight: bold;
-            font-size: 15px;
-            float: right;
-        }
-
-        .content {
-            padding: 10px 40px 30px 40px;
-            line-height: 1.6;
-            color: #333333;
-        }
-
-        h1, h2, h3 {
-            color: #1e293b;
-            border-bottom: 2px solid #f1f5f9;
-            padding-bottom: 8px;
-            margin-top: 25px;
-        }
-
-        strong {
-            color: #dc2626;
-        }
-
-        ul, ol {
-            padding-left: 20px;
-        }
-
-        li {
-            margin-bottom: 8px;
-        }
-
-        .footer {
-            background-color: #f8fafc;
-            color: #64748b;
-            text-align: center;
-            padding: 20px;
-            font-size: 13px;
-            border-top: 1px solid #e2e8f0;
-        }
-
-        @media screen and (max-width: 600px) {
-            .metric-card {
-                width: 100%;
-                display: block;
-                margin: 10px 0;
-            }
-
-            .content, .metrics-container {
-                padding: 20px;
-            }
-
-            .wrapper {
-                padding: 0;
-            }
-
-            .container {
-                border-radius: 0;
-                border: none;
-            }
+            background-color: #f4f4f5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
     </style>
 </head>
-<body>
-    <div class="wrapper">
-        <div class="container">
-            <div class="header">
-                <h2 style="color: #ffffff; margin: 0; font-size: 26px; letter-spacing: 1px;">AI STRENGTH COACH</h2>
-                <p style="color: #94a3b8; margin-top: 5px; font-size: 15px;">Biologically-Optimized Plan for {{DATE}}</p>
+<body style="margin: 0; padding: 0; width: 100% !important; background-color: #f4f4f5;">
+
+    <div style="background-color: #f4f4f5; padding: 40px 15px;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e5e7eb; box-shadow: 0 10px 30px rgba(0,0,0,0.04);">
+
+            <div style="padding: 45px 40px 30px 40px; text-align: left; border-bottom: 1px solid #f3f4f6;">
+                <div style="display: inline-block; background-color: #000000; color: #ffffff; font-size: 10px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; padding: 4px 10px; border-radius: 4px; margin-bottom: 16px;">Daily Briefing</div>
+                <h1 style="margin: 0 0 8px 0; color: #111827; font-size: 32px; font-weight: 800; letter-spacing: -0.5px;">AI Strength Coach</h1>
+                <p style="margin: 0; color: #6b7280; font-size: 16px; font-weight: 500;">{{DATE}}</p>
             </div>
 
-            <div class="metrics-container">
-                <div class="metric-card">
-                    <h3>📊 InBody Scan</h3>
-                    <p>Weight: <span class="metric-value">{{INBODY_WEIGHT}} kg</span></p>
-                    <p>Body Fat: <span class="metric-value">{{INBODY_BF}}%</span></p>
-                    <p>Skel. Muscle: <span class="metric-value">{{INBODY_SMM}} kg</span></p>
+            <div style="padding: 30px 40px; background-color: #fafafa; border-bottom: 1px solid #f3f4f6; text-align: center; font-size: 0;">
+
+                <div style="display: inline-block; width: 100%; max-width: 245px; vertical-align: top; text-align: left; font-size: 14px; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; box-sizing: border-box; margin-bottom: 15px;">
+                    <h3 style="margin: 0 0 15px 0; color: #111827; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">🧬 InBody Scan</h3>
+                    <div style="margin-bottom: 12px; color: #6b7280; font-size: 14px;">Weight <span style="float: right; color: #111827; font-weight: 700;">{{INBODY_WEIGHT}} kg</span></div>
+                    <div style="margin-bottom: 12px; color: #6b7280; font-size: 14px;">Body Fat <span style="float: right; color: #111827; font-weight: 700;">{{INBODY_BF}}%</span></div>
+                    <div style="margin-bottom: 12px; color: #6b7280; font-size: 14px;">Muscle <span style="float: right; color: #111827; font-weight: 700;">{{INBODY_SMM}} kg</span></div>
+                    <div style="margin-bottom: 12px; color: #6b7280; font-size: 14px;">BMR <span style="float: right; color: #111827; font-weight: 700;">{{INBODY_BMR}} kcal</span></div>
+                    <div style="color: #6b7280; font-size: 14px;">Focus <span style="float: right; color: #ef4444; font-weight: 700;">{{INBODY_WEAK}}</span></div>
                 </div>
-                <div class="metric-card">
-                    <h3>🫀 Daily Vitals</h3>
-                    <p>Last Sleep: <span class="metric-value">{{VITALS_SLEEP}}</span></p>
-                    <p>Resting HR: <span class="metric-value">{{VITALS_RHR}} bpm</span></p>
-                    <p>Past 24h Steps: <span class="metric-value">{{VITALS_STEPS}}</span></p>
+
+                <div style="display: inline-block; width: 15px; font-size: 0;"></div>
+
+                <div style="display: inline-block; width: 100%; max-width: 245px; vertical-align: top; text-align: left; font-size: 14px; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; box-sizing: border-box; margin-bottom: 15px;">
+                    <h3 style="margin: 0 0 15px 0; color: #111827; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">⚡ 24H Vitals</h3>
+                    <div style="margin-bottom: 12px; color: #6b7280; font-size: 14px;">Total Sleep <span style="float: right; color: #111827; font-weight: 700;">{{VITALS_SLEEP}}</span></div>
+                    <div style="margin-bottom: 12px; color: #6b7280; font-size: 14px;">Deep Sleep <span style="float: right; color: #4f46e5; font-weight: 700;">{{VITALS_DEEP}}</span></div>
+                    <div style="margin-bottom: 12px; color: #6b7280; font-size: 14px;">Resting HR <span style="float: right; color: #10b981; font-weight: 700;">{{VITALS_RHR}} bpm</span></div>
+                    <div style="margin-bottom: 12px; color: #6b7280; font-size: 14px;">Steps / Dist<span style="float: right; color: #111827; font-weight: 700;">{{VITALS_STEPS}} / {{VITALS_DIST}}</span></div>
+                    <div style="color: #6b7280; font-size: 14px;">Burn <span style="float: right; color: #e11d48; font-weight: 700;">{{VITALS_CALS}}</span></div>
                 </div>
+
             </div>
 
-            <div class="content">
+            <div style="padding: 35px 40px 45px 40px; background-color: #ffffff;">
                 {{WORKOUT_CONTENT}}
             </div>
 
-            <div class="footer">
-                Telemetry securely synced via Health Connect & Gabit Ring
+            <div style="background-color: #f9fafb; padding: 24px; text-align: center; border-top: 1px solid #f3f4f6;">
+                <p style="margin: 0; color: #9ca3af; font-size: 12px; font-weight: 500;">Telemetry securely synced via Health Connect & Gabit</p>
             </div>
+
         </div>
     </div>
 </body>

@@ -33,7 +33,7 @@ public record SegmentalLean
 public record InBodyTargets
 {
     [JsonPropertyName("fat_control_kg")] public double FatControl { get; init; }
-    [JsonPropertyName("muscle_control_kg")] public double MuscleControl { get; init; }
+    [JsonPropertyName("muscle_control_kg")] public double MuscleControl { get; init; } 
 }
 
 public record MetabolicHealth
