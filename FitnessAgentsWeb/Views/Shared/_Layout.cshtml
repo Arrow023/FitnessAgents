@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Fitness Agents</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <i class="fa-solid fa-dumbbell"></i> FitnessAgents
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" onclick="switchTab('overview')">
+                    <div class="icon-box"><i class="fa-solid fa-house"></i></div>
+                    <span>Overview</span>
+                </a>
+                <a href="#" class="nav-item" onclick="switchTab('diet')">
+                    <div class="icon-box"><i class="fa-solid fa-utensils"></i></div>
+                    <span>Diet Planner</span>
+                </a>
+                <a href="#" class="nav-item" onclick="switchTab('exercise')">
+                    <div class="icon-box"><i class="fa-solid fa-person-running"></i></div>
+                    <span>Exercise Log</span>
+                </a>
+                <a href="#" class="nav-item" onclick="switchTab('preferences')">
+                    <div class="icon-box"><i class="fa-solid fa-sliders"></i></div>
+                    <span>Preferences</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-bottom">
+                @if (User.Identity != null && User.Identity.IsAuthenticated)
+                {
+                    <div style="padding: 1rem; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; text-align: center; background: rgba(0,0,0,0.02); border-radius: 8px; border: 1px solid var(--border);">
+                        👤 <strong>@User.Identity.Name</strong>
+                        <div style="font-size: 0.7rem; margin-top: 0.2rem; text-transform: uppercase;">@(User.IsInRole("Admin") ? "Administrator" : "User Profile")</div>
+                    </div>
+                }
+
+                @if (User.IsInRole("Admin"))
+                {
+                    <a href="/Admin/Users" class="nav-item">
+                        <div class="icon-box"><i class="fa-solid fa-user-group"></i></div>
+                        <span>Family & Friends</span>
+                    </a>
+                }
+
+                @if (User.Identity != null && User.Identity.IsAuthenticated)
+                {
+                    <form method="post" action="/Auth/Logout" class="logout-form">
+                        <button type="submit" class="logout-btn nav-item" style="appearance: none; background: transparent; border: none; text-align: left; width: 100%; cursor: pointer;">
+                            <div class="icon-box"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
+                            <span>Logout</span>
+                        </button>
+                    </form>
+                }
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            @RenderBody()
+        </main>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var hash = window.location.hash;
+            if (hash && hash.startsWith('#tab-')) {
+                var tabId = hash.replace('#tab-', '');
+                switchTab(tabId, false);
+            }
+        });
+
+        function switchTab(tabId, updateHash = true) {
+            var target = document.getElementById('tab-' + tabId);
+            
+            // If the tab doesn't exist on this page (e.g., we are on Admin/Users), route to Dashboard
+            if (!target) {
+                window.location.href = '/Dashboard#tab-' + tabId;
+                return;
+            }
+
+            if (updateHash) {
+                window.history.pushState(null, null, '#tab-' + tabId);
+            }
+
+            // Update active nav-item
+            document.querySelectorAll('.sidebar-nav .nav-item').forEach(el => el.classList.remove('active'));
+            if (event && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            } else {
+                // If called programmatically (like on load), find the right nav item
+                var link = document.querySelector(`.sidebar-nav .nav-item[onclick*="'${tabId}'"]`);
+                if (link) link.classList.add('active');
+            }
+            
+            // Hide all tab-panes
+            document.querySelectorAll('.tab-pane').forEach(el => {
+                el.style.display = 'none';
+                el.classList.remove('active');
+            });
+            
+            // Show targeted tab-pane
+            target.style.display = 'block';
+            setTimeout(() => target.classList.add('active'), 10); // slight delay for transition
+        }
+    </script>
+</body>
+</html>

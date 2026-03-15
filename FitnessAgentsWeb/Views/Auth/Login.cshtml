@@ -1,0 +1,29 @@
+@{
+    ViewData["Title"] = "Login";
+}
+
+<div style="max-width: 400px; margin: 10vh auto;" class="glass-panel">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 class="section-title" style="font-size: 2.5rem;">Welcome Back</h1>
+        <p class="section-subtitle" style="margin-bottom:0;">Access your Fitness AI Dashboard</p>
+    </div>
+
+    @if (ViewBag.Error != null)
+    {
+        <div style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; text-align: center;">
+            @ViewBag.Error
+        </div>
+    }
+
+    <form method="post" action="/Auth/Login">
+        <div class="form-group">
+            <label>Username / User ID</label>
+            <input type="text" name="email" required placeholder="Enter Admin Email or User ID" />
+        </div>
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" name="password" required placeholder="Enter your password" />
+        </div>
+        <button type="submit" class="btn" style="margin-top: 1rem;">Sign In</button>
+    </form>
+</div>

@@ -1,67 +1,41 @@
-# ⚡ AI Strength Coach Webhook (Project "Apex")
+# Fitness Agents AI - Single-Tenant Orchestration Platform
 
-An autonomous, AI-driven biomechanics specialist and strength coach built with C# .NET. This backend application acts as a webhook receiver that ingests real-time physiological telemetry from Google Health Connect, combines it with body composition data, and uses a dual-agent AI architecture to generate and email a highly personalized, physiologically-aware daily workout routine.
+A powerful, single-tenant, multi-user web application and AI orchestrator designed to track biological baselines, daily health metrics, and autonomously generate and email highly personalized workout and diet plans. Built on C# .NET 8 MVC and Firebase Realtime Database.
 
-## 🧠 Architecture Overview
+## Core Features
 
-1. **The Telemetry Stream**: An Android device uses the [mcnaveen Health Connect Webhook](https://github.com/mcnaveen/health-connect-webhook) app to push daily vitals (HRV, Sleep, Steps, Calories) to this API.
-2. **The Cloud State**: Body composition data (InBody scan) and user feedback/conditions are pulled live from GitHub Gists.
-3. **The Analyst Agent**: An AI sports scientist analyzes the raw data, calculating CNS fatigue, readiness, and metabolic load.
-4. **The Coach Agent (Apex)**: An AI biomechanics specialist reads the Analyst's brief, checks the week's workout history to avoid repetition, adapts to user feedback, and generates the day's programming.
-5. **The Dashboard**: The C# server compiles the AI's markdown into a premium, Apple Health-style HTML email dashboard and delivers it to the user.
+- **Single-Tenant Architecture**: A unified global configuration for the application environment, allowing the primary administrator to effortlessly provision and monitor multiple user accounts.
+- **Background AI Scheduler (`WorkoutEmailSchedulerService`)**: AI generation is entirely decoupled from the webhook ingestion. Users can configure their absolute preferred "Daily Notification Time". The system's background worker wakes up, cross-references profiles, executes the deep AI reasoning phase asynchronously, and fires the email without blocking front-end operations.
+- **Firebase Realtime Sync**: All state is exclusively saved to Firebase. The `/config/app_settings` node manages global SMTP/AI keys. The `/users/{userId}/` node isolates HealthConnect streams, InBody data, weekly workout history, and user profile schedules. Absolutely no user data is saved to local disks.
+- **Premium Fitness Dashboard**: A vibrant, high-energy UI built with modern CSS variables, utilizing `Chart.js` for beautiful interactive visualizations of Sleep tracking and Body Composition (Skeletal Muscle Mass vs. Body Fat percentage).
+- **InBody OCR Vision Agent**: Upload physical InBody fat/muscle composition scan printouts directly to the Dashboard. The application leverages an OpenAI-compatible Vision Model to extract detailed metrics (SMM, PBF, Visceral Fat) into a unified JSON structure, overwriting the user's biological baseline.
+- **Dietician Agent**: A secondary AI agent that works in tandem with the primary coach. It analyzes the newly generated workout, the user's total burned calories, and physiological metrics to spit out a robust, science-backed recovery diet plan appended to the daily email.
 
-## ✨ "God Mode" Features
+## Setup & Execution
 
-* **Advanced Sleep Math (Noon-to-Noon)**: Fixes the "Midnight Sleep Split" by calculating sleep from 12:00 PM yesterday to 12:00 PM today, explicitly filtering out "awake" stages for 100% accuracy against premium trackers like Gabit and Oura.
-* **HRV & CNS Tracking**: Integrates Heart Rate Variability (RMSSD) to dynamically adapt workout intensity based on nervous system recovery.
-* **Strict Timezone Handling**: Forcefully anchors all UTC timestamps to India Standard Time (IST) to ensure daily aggregation perfectly matches the user's calendar day, regardless of server location.
-* **Micro-Cycle Memory**: Maintains a `weekly_history.json` file that resets every Sunday. Apex reviews this memory before programming to ensure balanced muscle targeting and zero redundant exercises.
-* **Live Gist Polling**: Uses cache-busting logic to instantly fetch the user's latest physical conditions (e.g., "my piriformis hurts") and body fat targets from GitHub Gists.
-* **Premium UI Injection**: Uses `Markdig` to convert the AI's markdown into a custom-styled HTML email, featuring clinical "Lab Report" metric cards, a highlighted HRV recovery gauge, and Caloric Gap fractionals.
+### 1. Environmental Configuration
+The application relies strictly on environment variables for database connections, ensuring it is 100% Docker-ready and secure.
+```bash
+# Windows PowerShell
+$env:FIREBASE_DATABASE_URL="https://your-project-url.firebasedatabase.app/"
 
-## 🛠️ Dependencies & Tech Stack
+# Linux/macOS
+export FIREBASE_DATABASE_URL="https://your-project-url.firebasedatabase.app/"
+```
 
-* **Framework**: C# .NET (Minimal API)
-* **AI Integration**: Microsoft Semantic Kernel / Azure OpenAI SDK (for `AsAIAgent` and Tool calling)
-* **Markdown Parser**: [Markdig](https://github.com/xoofx/markdig) (For converting AI markdown to HTML)
-* **Mobile Bridge**: [Health Connect Webhook by mcnaveen](https://github.com/mcnaveen/health-connect-webhook) (Android 13+ compatible)
-* **Email**: `System.Net.Mail` (SMTP client for delivery)
+### 2. Run the Application
+```bash
+dotnet build
+dotnet run
+```
+On first launch, if the global configurations (AI, SMTP, Admin user) are not found in the Firebase `/config/app_settings` node, the application will lock down and automatically redirect you to the `/Setup` onboarding screen.
 
-## 📱 Mobile App Setup (Android 13/14)
+## Webhooks
 
-This project requires your Android phone to push Health Connect data to the endpoint.
-1. Install [Health Connect](https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata) (if not natively integrated into your OS).
-2. Install the open-source **Health Connect Webhook** app.
-3. In Android Settings > Apps > Health Connect Webhook > Battery, set to **Unrestricted** (Prevents Android from killing background syncs).
-4. Grant the app permissions to read: Steps, Sleep, Heart Rate, Heart Rate Variability, Distance, and Active/Total Calories.
-5. Set the webhook URL to your hosted C# endpoint (e.g., `https://your-server.com/webhook`).
+Each user possesses a unique webhook endpoint exposed via:
+`POST /api/webhooks/{userId}/generate-workout`
 
-## ⚙️ Configuration (`appsettings.json`)
+This endpoint operates instantaneously, cleanly merging the standard `HealthConnect` payload into Firebase and returning `HTTP 200 OK`. The Background Scheduler will automatically aggregate this data when it's time to generate the user's plan.
 
-You must configure your external data sources and API keys in your `appsettings.json` file. Ensure your GitHub Gist URLs point to the **raw** file and do *not* include the commit hash (this ensures you always pull the latest version).
-
-```json
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.AspNetCore": "Warning"
-    }
-  },
-  "ExternalData": {
-    "InBodyUrl": "[https://gist.githubusercontent.com/USERNAME/GIST_ID/raw/latest_inbody.json](https://gist.githubusercontent.com/USERNAME/GIST_ID/raw/latest_inbody.json)",
-    "ConditionsUrl": "[https://gist.githubusercontent.com/USERNAME/GIST_ID/raw/user_conditions.txt](https://gist.githubusercontent.com/USERNAME/GIST_ID/raw/user_conditions.txt)"
-  },
-  "AI": {
-    "Endpoint": "YOUR_AZURE_OR_OPENAI_ENDPOINT",
-    "ApiKey": "YOUR_API_KEY",
-    "Model": "gpt-4o"
-  },
-  "Email": {
-    "SmtpServer": "smtp.gmail.com",
-    "Port": 587,
-    "Sender": "your-bot-email@gmail.com",
-    "Password": "your-app-password",
-    "Recipient": "your-personal-email@gmail.com"
-  }
-}
+## Manual Overrides
+Administrators and users can manually trigger the immediate generation and dispatch of emails (bypassing the Background Scheduler) directly from the Dashboard utilizing the **"Email Diet & Workout Plan"** action button.

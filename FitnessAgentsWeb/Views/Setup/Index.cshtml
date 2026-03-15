@@ -1,0 +1,78 @@
+@{
+    ViewData["Title"] = "Initial Setup";
+}
+
+<div style="max-width: 800px; margin: 0 auto;" class="glass-panel">
+    <h1 class="section-title">Welcome to Fitness Agents</h1>
+    <p class="section-subtitle">Since this is the first launch, let's configure your global system parameters.</p>
+
+    <form method="post" action="/Setup/Index">
+        <h3 style="color: var(--primary); margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">Admin Account</h3>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Admin Email</label>
+                <input type="email" name="adminEmail" required placeholder="admin@example.com" />
+            </div>
+            <div class="form-group">
+                <label>Admin Password</label>
+                <input type="password" name="adminPassword" required placeholder="Choose a secure password" />
+            </div>
+        </div>
+
+        <h3 style="color: var(--primary); margin-bottom: 1rem; margin-top: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">AI Agent Configuration</h3>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>NVIDIA NIM Model</label>
+                <input type="text" name="aiModel" required value="meta/llama-3.1-405b-instruct" />
+            </div>
+            <div class="form-group">
+                <label>NVIDIA API Key</label>
+                <input type="password" name="aiKey" required placeholder="nvapi-..." />
+            </div>
+        </div>
+        <div class="form-group">
+            <label>API Endpoint</label>
+            <input type="text" name="aiEndpoint" required value="https://integrate.api.nvidia.com/v1" />
+        </div>
+
+        <h3 style="color: var(--primary); margin-bottom: 1rem; margin-top: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">OCR Vision Configuration</h3>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>OCR Model</label>
+                <input type="text" name="ocrModel" required value="meta/llama-3.2-90b-vision-instruct" />
+            </div>
+            <div class="form-group">
+                <label>OCR API Key</label>
+                <input type="password" name="ocrKey" required placeholder="nvapi-..." />
+            </div>
+        </div>
+        <div class="form-group">
+            <label>OCR Endpoint</label>
+            <input type="text" name="ocrEndpoint" required value="https://integrate.api.nvidia.com/v1" />
+        </div>
+
+        <h3 style="color: var(--primary); margin-bottom: 1rem; margin-top: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">SMTP Email Delivery</h3>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>SMTP Host</label>
+                <input type="text" name="smtpHost" required placeholder="smtp.gmail.com" />
+            </div>
+            <div class="form-group">
+                <label>SMTP Port</label>
+                <input type="number" name="smtpPort" required value="587" />
+            </div>
+            <div class="form-group">
+                <label>From Email</label>
+                <input type="email" name="fromEmail" required placeholder="fitnessAI@gmail.com" />
+            </div>
+            <div class="form-group">
+                <label>App Password</label>
+                <input type="password" name="smtpPassword" required placeholder="App-Specific Password" />
+            </div>
+        </div>
+
+        <div style="margin-top: 2rem;">
+            <button type="submit" class="btn">Initialize Dashboard</button>
+        </div>
+    </form>
+</div>
