@@ -10,15 +10,17 @@ namespace FitnessAgentsWeb.Core.Services
     public class WorkoutEmailSchedulerService : BackgroundService
     {
         private readonly IServiceProvider _serviceProvider;
+        private readonly Microsoft.Extensions.Logging.ILogger<WorkoutEmailSchedulerService> _logger;
 
-        public WorkoutEmailSchedulerService(IServiceProvider serviceProvider)
+        public WorkoutEmailSchedulerService(IServiceProvider serviceProvider, Microsoft.Extensions.Logging.ILogger<WorkoutEmailSchedulerService> logger)
         {
             _serviceProvider = serviceProvider;
+            _logger = logger;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            Console.WriteLine("[Scheduler] WorkoutEmailSchedulerService is starting.");
+            _logger.LogInformation("[Scheduler] WorkoutEmailSchedulerService is starting.");
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -28,7 +30,7 @@ namespace FitnessAgentsWeb.Core.Services
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[Scheduler Error] {ex.Message}");
+                    _logger.LogError(ex, "[Scheduler Error]");
                 }
 
                 // Check once per minute
@@ -65,7 +67,7 @@ namespace FitnessAgentsWeb.Core.Services
                 // Example "08:00"
                 if (profile.NotificationTime == currentTimeString)
                 {
-                    Console.WriteLine($"[Scheduler] Timing hit for {userId} ({currentTimeString}). Triggering AI Orchestration!");
+                    _logger.LogInformation($"[Scheduler] Timing hit for {userId} ({currentTimeString}). Triggering AI Orchestration!");
                     
                     // We don't await the orchestrator directly so we don't block the loop for other users sharing this exact minute
                     _ = Task.Run(async () => 
@@ -76,7 +78,7 @@ namespace FitnessAgentsWeb.Core.Services
                         }
                         catch (Exception ex) 
                         {
-                            Console.WriteLine($"[Scheduler] Orchestration failed for {userId}: {ex.Message}");
+                            _logger.LogError(ex, $"[Scheduler] Orchestration failed for {userId}");
                         }
                     });
                 }

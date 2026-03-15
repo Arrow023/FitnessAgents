@@ -56,7 +56,7 @@ namespace FitnessAgentsWeb.Controllers
             var logsDir = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "Logs");
             if (!Directory.Exists(logsDir)) Directory.CreateDirectory(logsDir);
 
-            var files = Directory.GetFiles(logsDir, "*.txt")
+            var files = Directory.GetFiles(logsDir, "fitness-assist-*.log")
                 .Select(f => new { Name = Path.GetFileName(f), Path = f })
                 .OrderByDescending(f => f.Name)
                 .ToList();

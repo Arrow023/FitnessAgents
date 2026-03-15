@@ -9,17 +9,20 @@ namespace FitnessAgentsWeb.Core.Factories
     {
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _env;
+        private readonly Microsoft.Extensions.Logging.ILoggerFactory _loggerFactory;
 
-        public StorageRepositoryFactory(IConfiguration configuration, IWebHostEnvironment env)
+        public StorageRepositoryFactory(IConfiguration configuration, IWebHostEnvironment env, Microsoft.Extensions.Logging.ILoggerFactory loggerFactory)
         {
             _configuration = configuration;
             _env = env;
+            _loggerFactory = loggerFactory;
         }
 
         public IStorageRepository Create()
         {
             // Defaulting to Firebase as per single-tenant architecture
-            return new FirebaseStorageRepository(_configuration);
+            var logger = _loggerFactory.CreateLogger<FirebaseStorageRepository>();
+            return new FirebaseStorageRepository(_configuration, logger);
         }
     }
 }

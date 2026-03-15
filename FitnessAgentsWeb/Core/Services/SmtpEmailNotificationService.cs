@@ -14,10 +14,12 @@ namespace FitnessAgentsWeb.Core.Services
     public class SmtpEmailNotificationService : INotificationService
     {
         private readonly IAppConfigurationProvider _configProvider;
+        private readonly Microsoft.Extensions.Logging.ILogger<SmtpEmailNotificationService> _logger;
 
-        public SmtpEmailNotificationService(IAppConfigurationProvider configProvider)
+        public SmtpEmailNotificationService(IAppConfigurationProvider configProvider, Microsoft.Extensions.Logging.ILogger<SmtpEmailNotificationService> logger)
         {
             _configProvider = configProvider;
+            _logger = logger;
         }
 
         public async Task SendWorkoutNotificationAsync(string toEmail, string markdownWorkout, UserHealthContext context)
@@ -27,7 +29,7 @@ namespace FitnessAgentsWeb.Core.Services
 
             if (string.IsNullOrEmpty(fromEmail) || string.IsNullOrEmpty(toEmail) || string.IsNullOrEmpty(appPassword))
             {
-                Console.WriteLine("[Error] SMTP Config missing. Cannot send email.");
+                _logger.LogError("[Error] SMTP Config missing. Cannot send email.");
                 return;
             }
 
@@ -62,7 +64,7 @@ namespace FitnessAgentsWeb.Core.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Error] Could not load EmailTemplate.html: {ex.Message}");
+                _logger.LogError(ex, "[Error] Could not load EmailTemplate.html");
                 return;
             }
 
@@ -86,11 +88,11 @@ namespace FitnessAgentsWeb.Core.Services
             try
             {
                 await smtpClient.SendMailAsync(mailMessage);
-                Console.WriteLine($"[System] Professional HTML Workout successfully emailed to {context.FirstName}!");
+                _logger.LogInformation($"[System] Professional HTML Workout successfully emailed to {context.FirstName}!");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Error] Failed to send email: {ex.Message}");
+                _logger.LogError(ex, "[Error] Failed to send email");
             }
         }
     }

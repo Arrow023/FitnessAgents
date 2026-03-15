@@ -16,11 +16,13 @@ namespace FitnessAgentsWeb.Core.Services
         private readonly IStorageRepository _storageRepository;
         private readonly IConfiguration _configuration;
         private readonly TimeZoneInfo _istZone;
+        private readonly Microsoft.Extensions.Logging.ILogger<HealthConnectDataProcessor> _logger;
 
-        public HealthConnectDataProcessor(IStorageRepository storageRepository, IConfiguration configuration)
+        public HealthConnectDataProcessor(IStorageRepository storageRepository, IConfiguration configuration, Microsoft.Extensions.Logging.ILogger<HealthConnectDataProcessor> logger)
         {
             _storageRepository = storageRepository;
             _configuration = configuration;
+            _logger = logger;
             
             try { _istZone = TimeZoneInfo.FindSystemTimeZoneById("India Standard Time"); }
             catch
@@ -145,11 +147,11 @@ namespace FitnessAgentsWeb.Core.Services
             }
 
             // Load User Profile (FirstName & Preferences)
-            Console.WriteLine($"[HealthProcessor] Loading profile for: {userId} (normalized if needed by repo)");
+            _logger.LogInformation($"[HealthProcessor] Loading profile for: {userId} (normalized if needed by repo)");
             var profile = await _storageRepository.GetUserProfileAsync(userId);
             if (profile != null)
             {
-                Console.WriteLine($"[HealthProcessor] Profile FOUND. FirstName: {profile.FirstName}, Email: {profile.Email}, Prefs: {profile.Preferences}");
+                _logger.LogInformation($"[HealthProcessor] Profile FOUND. FirstName: {profile.FirstName}, Email: {profile.Email}, Prefs: {profile.Preferences}");
                 context.FirstName = string.IsNullOrEmpty(profile.FirstName) ? userId : profile.FirstName;
                 context.Email = profile.Email;
                 if (!string.IsNullOrEmpty(profile.Preferences))
@@ -159,7 +161,7 @@ namespace FitnessAgentsWeb.Core.Services
             }
             else
             {
-                Console.WriteLine($"[HealthProcessor] Profile NOT FOUND for {userId}");
+                _logger.LogWarning($"[HealthProcessor] Profile NOT FOUND for {userId}");
             }
 
             // Load User-Specific InBody & Conditions from Firebase
@@ -202,7 +204,7 @@ namespace FitnessAgentsWeb.Core.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Error Loading InBody for {userId}] {ex.Message}");
+                _logger.LogError(ex, $"[Error Loading InBody for {userId}]");
             }
 
             return context;

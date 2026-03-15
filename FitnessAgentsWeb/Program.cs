@@ -1,17 +1,27 @@
-using FitnessAgentsWeb.Core.Configuration;
-using FitnessAgentsWeb.Core.Logging;
-using System.IO;
+using Serilog;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using FitnessAgentsWeb.Core.Factories;
 using FitnessAgentsWeb.Core.Interfaces;
 using FitnessAgentsWeb.Core.Services;
-using Microsoft.AspNetCore.Authentication.Cookies;
+using FitnessAgentsWeb.Core.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure custom file logger provider (weekly files, prune older than 7 days)
+// Configure Serilog
 var logsFolder = Path.Combine(builder.Environment.ContentRootPath, "Logs");
-builder.Logging.ClearProviders();
-builder.Logging.AddProvider(new FileLoggerProvider(logsFolder));
+if (!Directory.Exists(logsFolder)) Directory.CreateDirectory(logsFolder);
+
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .WriteTo.Console(outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] {Level:u3} {Message:lj}{NewLine}{Exception}")
+    .WriteTo.File(
+        Path.Combine(logsFolder, "fitness-assist-.log"), 
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 7,
+        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] {Level:u3} {Message:lj}{NewLine}{Exception}")
+    .CreateLogger();
+
+builder.Host.UseSerilog();
 
 // Add MVC services for upcoming Dashboard
 builder.Services.AddControllersWithViews();

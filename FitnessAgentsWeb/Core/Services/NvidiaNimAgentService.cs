@@ -23,66 +23,60 @@ namespace FitnessAgentsWeb.Core.Services
         {
             IChatClient chatClient = GetChatClient();
 
-            var tools = new HealthDataTools(context);
-
-            AIAgent analystAgent = chatClient.AsAIAgent(
-                name: "Physiological_Analyst",
-                instructions: $@"You are an elite sports scientist. Your client is {context.FirstName}. 
-
-                    Execute your tools to gather:
-                    1. Today's intended Workout Schedule.
-                    2. Current Physical Conditions/Injuries.
-                    3. Biological Readiness (Sleep, RHR, HRV, Total Burn).
-                    4. InBody Baseline (Muscle mass, body fat).
-                    5. Current Week's Workout History.
-
-                    ANALYSIS GUIDELINES:
-                    - HRV (RMSSD): This is the primary indicator of CNS recovery. If HRV is below 40ms or significantly lower than his baseline, flag 'Low Recovery' and recommend reduced volume.
-                    - Total vs Active Burn: Compare today's total calories to active calories. If the gap is small, he has been sedentary; if the total is high, he may need higher caloric intake for the session.
-                    - Red Flags: Highlight injuries or high CNS fatigue based on the combination of low HRV and high RHR.
-
-                    Output a structured, clinical summary analyzing if {context.FirstName} is capable of performing his scheduled workout. List exercises he has already done this week to avoid repetition. Do NOT suggest specific exercises.",
-                tools: [
-                    AIFunctionFactory.Create(tools.GetDailyReadiness),
-                    AIFunctionFactory.Create(tools.GetInBodyBaseline),
-                    AIFunctionFactory.Create(tools.GetUserConditions),
-                    AIFunctionFactory.Create(tools.GetWorkoutSchedule),
-                    AIFunctionFactory.Create(tools.GetWeeklyWorkoutHistory)
-                ]
-            );
+            string prompt = $@"STRICT RESTRCTION: DO NOT include any reasoning, thought process, or preamble. Return ONLY the JSON object.
+            
+            You are an elite Strength & Conditioning Coach. 
+            Create a professional training session for {context.FirstName}.
+            
+            USER PROFILE:
+            Weight: {context.InBodyWeight}kg
+            Body Fat: {context.InBodyBf}%
+            Recent Activity: {context.ReadinessBrief}
+            Weekly History: {context.WeeklyHistoryBrief}
+            Preferences/Conditions: {context.ConditionsBrief}
+            InBody Analysis: {context.InBodyBrief}
+            
+            JSON Schema:
+            {{
+                ""plan_date"": ""string (ISO8601)"",
+                ""session_title"": ""string"",
+                ""personalized_introduction"": ""string (Highly personalized, encouraging opening message acknowledging user's latest health data/efforts and negatives if any)"",
+                ""warmup"": [
+                    {{ ""exercise"": ""string"", ""instruction"": ""string"" }}
+                ],
+                ""main_workout"": [
+                    {{ ""exercise"": ""string"", ""sets"": ""number"", ""reps"": ""string"", ""rest"": ""string"", ""notes"": ""string"" }}
+                ],
+                ""cooldown"": [
+                    {{ ""exercise"": ""string"", ""duration"": ""string"" }}
+                ],
+                ""coach_notes"": ""string""
+            }}";
 
             AIAgent coachAgent = chatClient.AsAIAgent(
                 name: "Strength_Coach",
-                instructions: $@"You are an elite personal trainer specializing in biomechanics and adaptive programming. You are writing an email directly to your client, {context.FirstName}. 
-                    You will receive a physiological brief from the Analyst. Your task is to design today's exact workout plan based on the Analyst's report. 
-
-                    FOLLOW THESE STRICT RULES:
-                    1. Speak directly to {context.FirstName} in an encouraging, professional tone. 
-                    2. Acknowledge his Intended Schedule, but ADAPT if there is localized strain or pain.
-                    3. Because {context.FirstName} is a Software Engineer, always include 1-2 specific mobility movements in the warm-up to counteract 'desk posture'.
-                    4. Review the Weekly History. DO NOT repeat main working exercises he has already performed this week.
-                    5. Review the User Conditions closely. If he states he hated an exercise previously, DO NOT program it. If he reports pain (e.g., piriformis), completely remove exercises that aggravate that area.
-                    6. Provide a structured routine: Warm-up, Main Working Sets (with sets/reps), and a Cooldown.
-                    7. Output ONLY clean Markdown so it formats nicely in an email.
-                
-                    Always write in a highly personalized, encouraging tone. End the email by signing off strictly as: 'Stay strong, <br><br>**Apex** <br>*Your AI Biomechanics Specialist*'. Never use generic placeholders."
+                instructions: "You are the world's best personal trainer with a warm, expert, and encouraging personality. Your output MUST be a valid JSON object. The 'personalized_introduction' should be your direct message to the user, capturing your appreciation for their efforts and analysis of their readiness. Do NOT be robotic; be the elite coach they know."
             );
 
-            var workflow = AgentWorkflowBuilder.BuildSequential([analystAgent, coachAgent]);
-            AIAgent workflowAgent = workflow.AsAIAgent(name: "DailyWorkoutEngine");
-            AgentSession session = await workflowAgent.CreateSessionAsync();
+            AgentSession session = await coachAgent.CreateSessionAsync();
+            _logger.LogInformation("[Workout AI] Agent is drafting structured plan...");
 
-            _logger.LogInformation("[System] Agents are deliberating...");
-
-            string finalWorkout = "";
-            await foreach (var update in workflowAgent.RunStreamingAsync("Generate today's workout plan.", session))
+            try
             {
-                if (update.Text != null && update.AuthorName == "Strength_Coach")
-                    {
-                        finalWorkout += update.Text;
-                    }
+                string aiResponse = "";
+                await foreach (var update in coachAgent.RunStreamingAsync(prompt, session))
+                {
+                    if (update.Text != null) aiResponse += update.Text;
                 }
-            return finalWorkout;
+
+                _logger.LogInformation($"[Workout AI Raw Response] {aiResponse}");
+                return ExtractJson(aiResponse);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Workout AI] Error generating plan");
+                return "{}";
+            }
         }
         public async Task<string> GenerateRecoveryDietJsonAsync(string upcomingWorkoutPlan, Models.UserHealthContext context)
         {

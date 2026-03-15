@@ -31,8 +31,11 @@ namespace FitnessAgentsWeb.Core.Configuration
         private string _adminEmail = string.Empty;
         private string _adminPassword = string.Empty;
 
-        public FirebaseSettingsProvider(IConfiguration configuration)
+        private readonly Microsoft.Extensions.Logging.ILogger<FirebaseSettingsProvider> _logger;
+
+        public FirebaseSettingsProvider(IConfiguration configuration, Microsoft.Extensions.Logging.ILogger<FirebaseSettingsProvider> _logger)
         {
+            this._logger = _logger;
             string databaseUrl = Environment.GetEnvironmentVariable("FIREBASE_DATABASE_URL") 
                                  ?? configuration["FirebaseSettings:DatabaseUrl"] 
                                  ?? "https://fitnessagent-1ef17-default-rtdb.asia-southeast1.firebasedatabase.app/";
@@ -147,16 +150,16 @@ namespace FitnessAgentsWeb.Core.Configuration
                     _adminEmail = snapshot.ContainsKey("AdminEmail") ? snapshot["AdminEmail"].ToString()! : "";
                     _adminPassword = snapshot.ContainsKey("AdminPassword") ? snapshot["AdminPassword"].ToString()! : "";
                     
-                    Console.WriteLine($"[FirebaseSettingsProvider] Loaded global settings from Realtime DB");
+                    _logger.LogInformation($"[FirebaseSettingsProvider] Loaded global settings from Realtime DB");
                 }
                 else
                 {
-                    Console.WriteLine($"[FirebaseSettingsProvider] No global settings found in Realtime DB");
+                    _logger.LogWarning($"[FirebaseSettingsProvider] No global settings found in Realtime DB");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[FirebaseSettingsProvider] Error loading settings: {ex.Message}");
+                _logger.LogError(ex, $"[FirebaseSettingsProvider] Error loading settings");
             }
         }
 

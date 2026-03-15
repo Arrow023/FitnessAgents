@@ -8,11 +8,13 @@ namespace FitnessAgentsWeb.Core.Factories
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly IConfiguration _configuration;
+        private readonly Microsoft.Extensions.Logging.ILogger<ConfigurationProviderFactory> _logger;
 
-        public ConfigurationProviderFactory(IServiceProvider serviceProvider, IConfiguration configuration)
+        public ConfigurationProviderFactory(IServiceProvider serviceProvider, IConfiguration configuration, Microsoft.Extensions.Logging.ILogger<ConfigurationProviderFactory> logger)
         {
             _serviceProvider = serviceProvider;
             _configuration = configuration;
+            _logger = logger;
         }
 
         public Configuration.IAppConfigurationProvider GetProvider()
@@ -25,8 +27,8 @@ namespace FitnessAgentsWeb.Core.Factories
             }
 
             // Fallback to Firebase
-            Console.WriteLine("[ConfigurationProviderFactory] Local config empty. Falling back to Firebase.");
-            return new Configuration.FirebaseSettingsProvider(_configuration);
+            _logger.LogInformation("[ConfigurationProviderFactory] Local config empty. Falling back to Firebase.");
+            return new Configuration.FirebaseSettingsProvider(_configuration, _serviceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Configuration.FirebaseSettingsProvider>>());
         }
     }
 }

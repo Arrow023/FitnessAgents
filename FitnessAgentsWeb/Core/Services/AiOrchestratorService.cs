@@ -14,16 +14,20 @@ namespace FitnessAgentsWeb.Core.Services
         private readonly HealthDataProcessorFactory _processorFactory;
         private readonly AiAgentServiceFactory _aiFactory;
         private readonly NotificationServiceFactory _notificationFactory;
+        private readonly Microsoft.Extensions.Logging.ILogger<AiOrchestratorService> _logger;
+
         public AiOrchestratorService(
             StorageRepositoryFactory storageFactory,
             HealthDataProcessorFactory processorFactory,
             AiAgentServiceFactory aiFactory,
-            NotificationServiceFactory notificationFactory)
+            NotificationServiceFactory notificationFactory,
+            Microsoft.Extensions.Logging.ILogger<AiOrchestratorService> logger)
         {
             _storageFactory = storageFactory;
             _processorFactory = processorFactory;
             _aiFactory = aiFactory;
             _notificationFactory = notificationFactory;
+            _logger = logger;
         }
 
         public async Task<bool> AppendHealthDataAsync(string userId, HealthExportPayload newPayload)
@@ -38,13 +42,13 @@ namespace FitnessAgentsWeb.Core.Services
                 // Save merged data back to Firebase
                 string mergedJson = JsonSerializer.Serialize(finalPayloadToProcess, new JsonSerializerOptions { WriteIndented = true });
                 await storageRepo.SaveTodayHealthDataAsync(userId, mergedJson);
-                Console.WriteLine($"[System] Health data smartly merged and saved for {userId}.");
+                _logger.LogInformation($"[System] Health data smartly merged and saved for {userId}.");
 
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Error in AppendHealthDataAsync] {ex.Message}");
+                _logger.LogError(ex, $"[Error in AppendHealthDataAsync] for {userId}");
                 return false;
             }
         }
@@ -73,16 +77,16 @@ namespace FitnessAgentsWeb.Core.Services
                     finalPayloadToProcess = await storageRepo.GetTodayHealthDataAsync(userId);
                 }
 
-                Console.WriteLine($"[System] Booting AI in background for {userId}...");
+                _logger.LogInformation($"[System] Booting AI in background for {userId}...");
 
                 // LOAD ALL DATA INTO MEMORY ONCE
                 var userContext = await healthProcessor.LoadHealthStateToRAMAsync(userId, finalPayloadToProcess);
 
                 // Run the AI Agent (Workout)
-                string workoutMarkdown = await aiAgent.GenerateWorkoutAsync(userContext);
+                string workoutJsonString = await aiAgent.GenerateWorkoutAsync(userContext);
 
                 // Run the AI Dietician (Nutrition - JSON)
-                string dietJsonString = await aiAgent.GenerateRecoveryDietJsonAsync(workoutMarkdown, userContext);
+                string dietJsonString = await aiAgent.GenerateRecoveryDietJsonAsync(workoutJsonString, userContext);
                 
                 DietPlan? dietPlan = null;
                 string dietMarkdown = "No diet generated.";
@@ -109,7 +113,56 @@ namespace FitnessAgentsWeb.Core.Services
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"[AiOrchestrator] JSON Parse Failed for Diet: {ex.Message}");
+                        _logger.LogError(ex, "[AiOrchestrator] JSON Parse Failed for Diet");
+                    }
+                }
+
+                // Format Workout JSON to Markdown
+                string workoutMarkdown = "";
+                if (!string.IsNullOrEmpty(workoutJsonString) && workoutJsonString != "{}")
+                {
+                    try
+                    {
+                        var workoutData = JsonDocument.Parse(workoutJsonString).RootElement;
+                        var sb = new System.Text.StringBuilder();
+                        sb.AppendLine($"# {workoutData.GetProperty("session_title").GetString()}");
+                        sb.AppendLine($"> Date: {workoutData.GetProperty("plan_date").GetString()}\n");
+
+                        if (workoutData.TryGetProperty("personalized_introduction", out var intro))
+                        {
+                            sb.AppendLine($"{intro.GetString()}\n");
+                        }
+                        
+                        sb.AppendLine("## Warmup");
+                        foreach (var item in workoutData.GetProperty("warmup").EnumerateArray())
+                        {
+                            sb.AppendLine($"- **{item.GetProperty("exercise").GetString()}**: {item.GetProperty("instruction").GetString()}");
+                        }
+
+                        sb.AppendLine("\n## Main Workout");
+                        sb.AppendLine("| Exercise | Sets | Reps | Rest | Notes |");
+                        sb.AppendLine("| :--- | :--- | :--- | :--- | :--- |");
+                        foreach (var item in workoutData.GetProperty("main_workout").EnumerateArray())
+                        {
+                            sb.AppendLine($"| {item.GetProperty("exercise").GetString()} | {item.GetProperty("sets")} | {item.GetProperty("reps").GetString()} | {item.GetProperty("rest").GetString()} | {item.GetProperty("notes").GetString()} |");
+                        }
+
+                        sb.AppendLine("\n## Cooldown");
+                        foreach (var item in workoutData.GetProperty("cooldown").EnumerateArray())
+                        {
+                            sb.AppendLine($"- **{item.GetProperty("exercise").GetString()}** ({item.GetProperty("duration").GetString()})");
+                        }
+
+                        sb.AppendLine($"\n---");
+                        sb.AppendLine($"**Coach Notes**: {workoutData.GetProperty("coach_notes").GetString()}");
+                        sb.AppendLine("\nStay strong, <br><br>**Apex** <br>*Your AI Biomechanics Specialist*");
+
+                        workoutMarkdown = sb.ToString();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "[AiOrchestrator] Workout JSON Formatting Failed");
+                        workoutMarkdown = workoutJsonString; // Fallback
                     }
                 }
 
@@ -134,14 +187,14 @@ namespace FitnessAgentsWeb.Core.Services
                 }
                 else
                 {
-                    Console.WriteLine($"[System] No email configured for {userId}. Skipping email notification.");
+                    _logger.LogWarning($"[System] No email configured for {userId}. Skipping email notification.");
                 }
                 
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Error in AiOrchestratorService] {ex.Message}");
+                _logger.LogError(ex, $"[Error in AiOrchestratorService] processing for {userId}");
                 return false;
             }
         }

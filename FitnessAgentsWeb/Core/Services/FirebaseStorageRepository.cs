@@ -12,9 +12,11 @@ namespace FitnessAgentsWeb.Core.Services
     public class FirebaseStorageRepository : IStorageRepository
     {
         private readonly FirebaseClient _firebaseClient;
+        private readonly Microsoft.Extensions.Logging.ILogger<FirebaseStorageRepository> _logger;
 
-        public FirebaseStorageRepository(IConfiguration configuration)
+        public FirebaseStorageRepository(IConfiguration configuration, Microsoft.Extensions.Logging.ILogger<FirebaseStorageRepository> logger)
         {
+            _logger = logger;
             // Prefer environment variable (set through docker or admin UI)
             string databaseUrl = Environment.GetEnvironmentVariable("FIREBASE_DATABASE_URL") 
                                  ?? configuration["FirebaseSettings:DatabaseUrl"] 
@@ -41,7 +43,7 @@ namespace FitnessAgentsWeb.Core.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[FirebaseStorage] Failed getting health data for {userId}: {ex.Message}");
+                _logger.LogError(ex, $"[FirebaseStorage] Failed getting health data for {userId}");
                 return null;
             }
         }
@@ -60,7 +62,7 @@ namespace FitnessAgentsWeb.Core.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[FirebaseStorage] Failed saving health data for {userId}: {ex.Message}");
+                _logger.LogError(ex, $"[FirebaseStorage] Failed saving health data for {userId}");
             }
         }
 
@@ -98,7 +100,7 @@ namespace FitnessAgentsWeb.Core.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[FirebaseStorage] History unavailable for {userId}. Creating new week slice. {ex.Message}");
+                _logger.LogWarning(ex, $"[FirebaseStorage] History unavailable for {userId}. Creating new week slice.");
             }
 
             return history;
@@ -117,7 +119,7 @@ namespace FitnessAgentsWeb.Core.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[FirebaseStorage] Failed saving weekly history for {userId}: {ex.Message}");
+                _logger.LogError(ex, $"[FirebaseStorage] Failed saving weekly history for {userId}");
             }
         }
 
@@ -137,7 +139,7 @@ namespace FitnessAgentsWeb.Core.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[FirebaseStorage] Failed getting InBody data for {userId}: {ex.Message}");
+                _logger.LogError(ex, $"[FirebaseStorage] Failed getting InBody data for {userId}");
                 return null;
             }
         }
@@ -156,7 +158,7 @@ namespace FitnessAgentsWeb.Core.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[FirebaseStorage] Failed saving InBody data for {userId}: {ex.Message}");
+                _logger.LogError(ex, $"[FirebaseStorage] Failed saving InBody data for {userId}");
             }
         }
 
@@ -191,7 +193,7 @@ namespace FitnessAgentsWeb.Core.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[FirebaseStorage] Failed fetching user profiles: {ex.Message}");
+                _logger.LogError(ex, "[FirebaseStorage] Failed fetching user profiles");
             }
             return users;
         }
@@ -211,7 +213,7 @@ namespace FitnessAgentsWeb.Core.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[FirebaseStorage] Failed getting profile for {userId}: {ex.Message}");
+                _logger.LogError(ex, $"[FirebaseStorage] Failed getting profile for {userId}");
                 return null;
             }
         }
@@ -229,7 +231,7 @@ namespace FitnessAgentsWeb.Core.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[FirebaseStorage] Failed saving profile for {userId}: {ex.Message}");
+                _logger.LogError(ex, $"[FirebaseStorage] Failed saving profile for {userId}");
             }
         }
 
@@ -249,7 +251,7 @@ namespace FitnessAgentsWeb.Core.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[FirebaseStorage] Failed getting diet plan for {userId}: {ex.Message}");
+                _logger.LogError(ex, $"[FirebaseStorage] Failed getting diet plan for {userId}");
                 return null;
             }
         }
@@ -267,7 +269,7 @@ namespace FitnessAgentsWeb.Core.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[FirebaseStorage] Failed saving diet plan for {userId}: {ex.Message}");
+                _logger.LogError(ex, $"[FirebaseStorage] Failed saving diet plan for {userId}");
             }
         }
     }
