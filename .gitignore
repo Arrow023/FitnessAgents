@@ -361,3 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+FitnessAgentsWeb/App_Data/health_connect_today.json
+FitnessAgentsWeb/App_Data/weekly_history.json

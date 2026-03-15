@@ -16,6 +16,9 @@ public static class HealthState
     public static string VitalsSteps { get; set; } = "0";
     public static string VitalsDistance { get; set; } = "0.0 km";
     public static string VitalsCalories { get; set; } = "0 kcal";
+    public static string VitalsHrv { get; set; } = "--";
+    public static string VitalsTotalCalories { get; set; } = "0";
+
 
     public static string InBodyWeight { get; set; } = "--";
     public static string InBodyBf { get; set; } = "--";
@@ -23,6 +26,8 @@ public static class HealthState
     public static string InBodyBmr { get; set; } = "--";
     public static string InBodyImbalances { get; set; } = "Balanced";
     public static string InBodyFatTarget { get; set; } = "0.0";
+    public static string InBodyVisceral { get; set; } = "0";
+    public static string InBodyBmi { get; set; } = "0.0";
 
     // Pre-calculated Briefs for the AI Agent Prompt
     public static string ReadinessBrief { get; set; } = "Assume baseline readiness.";

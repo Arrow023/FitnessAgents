@@ -33,22 +33,50 @@
 
                 <div style="display: inline-block; width: 100%; max-width: 245px; vertical-align: top; text-align: left; font-size: 14px; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; box-sizing: border-box; margin-bottom: 15px;">
                     <h3 style="margin: 0 0 15px 0; color: #111827; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">🧬 InBody Scan</h3>
-                    <div style="margin-bottom: 12px; color: #6b7280; font-size: 14px;">Weight <span style="float: right; color: #111827; font-weight: 700;">{{INBODY_WEIGHT}} kg</span></div>
-                    <div style="margin-bottom: 12px; color: #6b7280; font-size: 14px;">Body Fat <span style="float: right; color: #111827; font-weight: 700;">{{INBODY_BF}}%</span></div>
-                    <div style="margin-bottom: 12px; color: #6b7280; font-size: 14px;">Muscle <span style="float: right; color: #111827; font-weight: 700;">{{INBODY_SMM}} kg</span></div>
-                    <div style="margin-bottom: 12px; color: #6b7280; font-size: 14px;">BMR <span style="float: right; color: #111827; font-weight: 700;">{{INBODY_BMR}} kcal</span></div>
-                    <div style="color: #6b7280; font-size: 14px;">Focus <span style="float: right; color: #ef4444; font-weight: 700;">{{INBODY_WEAK}}</span></div>
+
+                    <div style="margin-bottom: 15px; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 10px;">
+                        <span style="color: #059669; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Visceral Fat Level</span>
+                        <div style="margin-top: 2px;">
+                            <span style="color: #047857; font-size: 20px; font-weight: 800; font-family: 'Courier New', Courier, monospace;">{{INBODY_VISCERAL}}</span>
+                            <small style="color: #10b981; font-size: 11px; font-weight: 600;">LVL</small>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 10px; color: #6b7280; font-size: 13px;">Body Mass Index <span style="float: right; color: #111827; font-weight: 700;">{{INBODY_BMI}}</span></div>
+                    <div style="margin-bottom: 10px; color: #6b7280; font-size: 13px;">Weight <span style="float: right; color: #111827; font-weight: 700;">{{INBODY_WEIGHT}} kg</span></div>
+                    <div style="margin-bottom: 10px; color: #6b7280; font-size: 13px;">Body Fat <span style="float: right; color: #111827; font-weight: 700;">{{INBODY_BF}}%</span></div>
+                    <div style="margin-bottom: 10px; color: #6b7280; font-size: 13px;">Muscle Mass <span style="float: right; color: #111827; font-weight: 700;">{{INBODY_SMM}} kg</span></div>
+
+                    <div style="color: #6b7280; font-size: 13px; border-top: 1px solid #f3f4f6; margin-top: 10px; padding-top: 10px;">
+                        Training Focus
+                        <span style="float: right; color: #ef4444; font-weight: 700;">{{INBODY_WEAK}}</span>
+                    </div>
                 </div>
 
                 <div style="display: inline-block; width: 15px; font-size: 0;"></div>
 
                 <div style="display: inline-block; width: 100%; max-width: 245px; vertical-align: top; text-align: left; font-size: 14px; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; box-sizing: border-box; margin-bottom: 15px;">
                     <h3 style="margin: 0 0 15px 0; color: #111827; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">⚡ 24H Vitals</h3>
-                    <div style="margin-bottom: 12px; color: #6b7280; font-size: 14px;">Total Sleep <span style="float: right; color: #111827; font-weight: 700;">{{VITALS_SLEEP}}</span></div>
-                    <div style="margin-bottom: 12px; color: #6b7280; font-size: 14px;">Deep Sleep <span style="float: right; color: #4f46e5; font-weight: 700;">{{VITALS_DEEP}}</span></div>
-                    <div style="margin-bottom: 12px; color: #6b7280; font-size: 14px;">Resting HR <span style="float: right; color: #10b981; font-weight: 700;">{{VITALS_RHR}} bpm</span></div>
-                    <div style="margin-bottom: 12px; color: #6b7280; font-size: 14px;">Steps / Dist<span style="float: right; color: #111827; font-weight: 700;">{{VITALS_STEPS}} / {{VITALS_DIST}}</span></div>
-                    <div style="color: #6b7280; font-size: 14px;">Burn <span style="float: right; color: #e11d48; font-weight: 700;">{{VITALS_CALS}}</span></div>
+
+                    <div style="margin-bottom: 15px; background-color: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 8px; padding: 10px;">
+                        <span style="color: #7c3aed; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Recovery (HRV)</span>
+                        <div style="margin-top: 2px;">
+                            <span style="color: #4f46e5; font-size: 20px; font-weight: 800; font-family: 'Courier New', Courier, monospace;">{{VITALS_HRV}}</span>
+                            <small style="color: #a78bfa; font-size: 11px; font-weight: 600;">ms</small>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 10px; color: #6b7280; font-size: 13px;">Total Sleep <span style="float: right; color: #111827; font-weight: 700;">{{VITALS_SLEEP}}</span></div>
+                    <div style="margin-bottom: 10px; color: #6b7280; font-size: 13px;">Deep Sleep <span style="float: right; color: #4f46e5; font-weight: 700;">{{VITALS_DEEP}}</span></div>
+                    <div style="margin-bottom: 10px; color: #6b7280; font-size: 13px;">Resting HR <span style="float: right; color: #10b981; font-weight: 700;">{{VITALS_RHR}} <small style="font-size: 9px;">BPM</small></span></div>
+                    <div style="margin-bottom: 10px; color: #6b7280; font-size: 13px;">Steps <span style="float: right; color: #111827; font-weight: 700;">{{VITALS_STEPS}}</span></div>
+
+                    <div style="color: #6b7280; font-size: 13px; border-top: 1px solid #f3f4f6; margin-top: 10px; padding-top: 10px;">
+                        Burn (Act/Tot)
+                        <span style="float: right; color: #e11d48; font-weight: 700;">
+                            {{VITALS_CALS}} <small style="color: #9ca3af; font-weight: 400; font-size: 11px;">/ {{VITALS_TOTAL_CALS}}</small>
+                        </span>
+                    </div>
                 </div>
 
             </div>

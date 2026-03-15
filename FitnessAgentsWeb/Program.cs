@@ -63,35 +63,69 @@ app.MapPost("/api/generate-workout", async (HttpContext context) =>
                     // Merge and prune into our outer variable
                     finalPayloadToProcess = new HealthExportPayload
                     {
+                        // 1. Sleep (Unchanged logic, updated model)
                         Sleep = existingPayload.Sleep.Concat(newPayload.Sleep)
                             .GroupBy(s => s.SessionEndTime).Select(g => g.First())
                             .Where(s => s.SessionEndTime >= cutoff).ToList(),
 
-                        RestingHeartRate = existingPayload.RestingHeartRate.Concat(newPayload.RestingHeartRate)
-                            .GroupBy(r => r.Time).Select(g => g.First())
-                            .Where(r => r.Time >= cutoff).ToList(),
-
+                        // 2. Steps (Unchanged logic)
                         Steps = existingPayload.Steps.Concat(newPayload.Steps)
                             .GroupBy(s => s.EndTime).Select(g => g.First())
                             .Where(s => s.EndTime >= cutoff).ToList(),
 
-                        Exercise = existingPayload.Exercise.Concat(newPayload.Exercise)
-                            .GroupBy(e => e.StartTime).Select(g => g.First())
-                            .Where(e => e.StartTime >= cutoff).ToList(),
+                        // 3. Heart Rate (Detailed list)
+                        HeartRate = existingPayload.HeartRate.Concat(newPayload.HeartRate)
+                            .GroupBy(r => r.Time).Select(g => g.First())
+                            .Where(r => r.Time >= cutoff).ToList(),
 
-                        // --- OUR NEW VITALS ---
+                        // 4. Resting Heart Rate (Specific metrics)
+                        RestingHeartRate = existingPayload.RestingHeartRate.Concat(newPayload.RestingHeartRate)
+                            .GroupBy(r => r.Time).Select(g => g.First())
+                            .Where(r => r.Time >= cutoff).ToList(),
+
+                        // 5. HRV (CRITICAL ADDITION)
+                        HRV = existingPayload.HRV.Concat(newPayload.HRV)
+                            .GroupBy(h => h.Time).Select(g => g.First())
+                            .Where(h => h.Time >= cutoff).ToList(),
+
+                        // 6. Active Calories
+                        ActiveCalories = existingPayload.ActiveCalories.Concat(newPayload.ActiveCalories)
+                            .GroupBy(c => c.EndTime).Select(g => g.First())
+                            .Where(c => c.EndTime >= cutoff).ToList(),
+
+                        // 7. Total Calories (CRITICAL ADDITION)
+                        TotalCalories = existingPayload.TotalCalories.Concat(newPayload.TotalCalories)
+                            .GroupBy(c => c.EndTime).Select(g => g.First())
+                            .Where(c => c.EndTime >= cutoff).ToList(),
+
+                        // 8. Distance
                         Distance = existingPayload.Distance.Concat(newPayload.Distance)
                             .GroupBy(d => d.EndTime).Select(g => g.First())
                             .Where(d => d.EndTime >= cutoff).ToList(),
 
-                        ActiveCalories = existingPayload.ActiveCalories.Concat(newPayload.ActiveCalories)
-                            .GroupBy(c => c.EndTime).Select(g => g.First())
-                            .Where(c => c.EndTime >= cutoff).ToList()
+                        // 9. Exercise
+                        Exercise = existingPayload.Exercise.Concat(newPayload.Exercise)
+                            .GroupBy(e => e.StartTime).Select(g => g.First())
+                            .Where(e => e.StartTime >= cutoff).ToList()
                     };
 
                     // Re-serialize the newly merged object back to JSON text
                     incomingJson = JsonSerializer.Serialize(finalPayloadToProcess, new JsonSerializerOptions { WriteIndented = true });
                 }
+            }
+
+            lock (runLock)
+            {
+                // If it has been less than 10 minutes since the last run, ignore the AI trigger
+                if ((DateTime.UtcNow - lastRunTime).TotalMinutes < 2)
+                {
+                    Console.WriteLine("[System] Ignored duplicate trigger (Cooldown active).");
+                    // We still return OK so the phone knows the data was received
+                    return Results.Ok("Data saved. AI skipped due to recent execution.");
+                }
+
+                // Otherwise, update the timer to NOW
+                lastRunTime = DateTime.UtcNow;
             }
 
             // Save the fully merged data back to the disk
@@ -100,23 +134,12 @@ app.MapPost("/api/generate-workout", async (HttpContext context) =>
         }
 
         // 2. Debouncing (The Cooldown Timer)
-        lock (runLock)
-        {
-            // If it has been less than 10 minutes since the last run, ignore the AI trigger
-            if ((DateTime.UtcNow - lastRunTime).TotalMinutes < 2)
-            {
-                Console.WriteLine("[System] Ignored duplicate trigger (Cooldown active).");
-                // We still return OK so the phone knows the data was received
-                return Results.Ok("Data saved. AI skipped due to recent execution.");
-            }
-
-            // Otherwise, update the timer to NOW
-            lastRunTime = DateTime.UtcNow;
-        }
+       
         Console.WriteLine("[System] Data saved. Acknowledging phone and booting AI in background...");
 
         // 3. Fire-and-Forget Background Task
         // Task.Run detaches the AI logic from the web request so the phone doesn't wait
+        IConfiguration config = builder.Configuration;
         _ = Task.Run(async () =>
         {
             try
@@ -127,7 +150,7 @@ app.MapPost("/api/generate-workout", async (HttpContext context) =>
                 catch { istZone = TimeZoneInfo.Local; }
 
                 // LOAD ALL DATA INTO MEMORY ONCE
-                await LoadHealthStateAsync(finalPayloadToProcess);
+                await LoadHealthStateAsync(finalPayloadToProcess, config);
                 await LoadWeeklyHistoryAsync(appDataFolder, istZone);
 
                 // Run the AI (it will instantly read the RAM)
@@ -177,18 +200,23 @@ static async Task<string> RunFitnessAgentAsync(string aiKey, string aiEndpoint, 
 
             Execute your tools to gather:
             1. Today's intended Workout Schedule.
-            2. Current Physical Conditions/Injuries (Pay close attention to user feedback here).
-            3. Biological Readiness (Sleep, RHR, Strain).
+            2. Current Physical Conditions/Injuries.
+            3. Biological Readiness (Sleep, RHR, HRV, Total Burn).
             4. InBody Baseline (Muscle mass, body fat).
             5. Current Week's Workout History.
 
-            Output a structured, clinical summary analyzing if Piyush is capable of performing his scheduled workout. Highlight any critical red flags, and list the exercises he has already done this week so the Coach avoids repeating them. Do NOT suggest specific exercises.",
+            ANALYSIS GUIDELINES:
+            - HRV (RMSSD): This is the primary indicator of CNS recovery. If HRV is below 40ms or significantly lower than his baseline, flag 'Low Recovery' and recommend reduced volume.
+            - Total vs Active Burn: Compare today's total calories to active calories. If the gap is small, he has been sedentary; if the total is high, he may need higher caloric intake for the session.
+            - Red Flags: Highlight injuries or high CNS fatigue based on the combination of low HRV and high RHR.
+
+            Output a structured, clinical summary analyzing if Piyush is capable of performing his scheduled workout. List exercises he has already done this week to avoid repetition. Do NOT suggest specific exercises.",
         tools: [
             AIFunctionFactory.Create(HealthDataTools.GetDailyReadiness),
             AIFunctionFactory.Create(HealthDataTools.GetInBodyBaseline),
             AIFunctionFactory.Create(HealthDataTools.GetUserConditions),
             AIFunctionFactory.Create(HealthDataTools.GetWorkoutSchedule),
-            AIFunctionFactory.Create(HealthDataTools.GetWeeklyWorkoutHistory) // <-- NEW TOOL
+            AIFunctionFactory.Create(HealthDataTools.GetWeeklyWorkoutHistory)
         ]
     );
 
@@ -271,6 +299,8 @@ static void SendWorkoutEmail(string markdownWorkout, string appPassword)
         finalHtmlBody = finalHtmlBody.Replace("{{INBODY_SMM}}", HealthState.InBodySmm);
         finalHtmlBody = finalHtmlBody.Replace("{{INBODY_BMR}}", HealthState.InBodyBmr);
         finalHtmlBody = finalHtmlBody.Replace("{{INBODY_WEAK}}", HealthState.InBodyImbalances);
+        finalHtmlBody = finalHtmlBody.Replace("{{INBODY_VISCERAL}}", HealthState.InBodyVisceral);
+        finalHtmlBody = finalHtmlBody.Replace("{{INBODY_BMI}}", HealthState.InBodyBmi);
 
         finalHtmlBody = finalHtmlBody.Replace("{{VITALS_SLEEP}}", HealthState.VitalsSleepTotal);
         finalHtmlBody = finalHtmlBody.Replace("{{VITALS_DEEP}}", HealthState.VitalsSleepDeep);
@@ -278,6 +308,8 @@ static void SendWorkoutEmail(string markdownWorkout, string appPassword)
         finalHtmlBody = finalHtmlBody.Replace("{{VITALS_STEPS}}", HealthState.VitalsSteps);
         finalHtmlBody = finalHtmlBody.Replace("{{VITALS_DIST}}", HealthState.VitalsDistance);
         finalHtmlBody = finalHtmlBody.Replace("{{VITALS_CALS}}", HealthState.VitalsCalories);
+        finalHtmlBody = finalHtmlBody.Replace("{{VITALS_HRV}}", HealthState.VitalsHrv);
+        finalHtmlBody = finalHtmlBody.Replace("{{VITALS_TOTAL_CALS}}", HealthState.VitalsTotalCalories);
     }
     catch (Exception ex)
     {
@@ -318,120 +350,93 @@ static void SendWorkoutEmail(string markdownWorkout, string appPassword)
     }
 }
 
-static async Task LoadHealthStateAsync(HealthExportPayload hc)
+static async Task LoadHealthStateAsync(HealthExportPayload hc, IConfiguration config)
 {
     if (hc != null)
     {
         // 1. Setup India Standard Time Zone
         TimeZoneInfo istZone;
         try { istZone = TimeZoneInfo.FindSystemTimeZoneById("India Standard Time"); }
-        catch
-        {
+        catch { 
             try { istZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kolkata"); }
-            catch { istZone = TimeZoneInfo.Local; }
+            catch { istZone = TimeZoneInfo.Local; } 
         }
 
-        // 2. THE TRUE TARGET DAY FIX
-        // Find the absolute latest timestamp across ALL arrays, not just the broken Steps array.
+        // 2. SMART TARGET DAY (Sync to latest data point)
         var allDates = hc.Sleep.Select(s => s.SessionEndTime)
             .Concat(hc.Steps.Select(s => s.EndTime))
             .Concat(hc.ActiveCalories.Select(c => c.EndTime))
-            .Concat(hc.RestingHeartRate.Select(r => r.Time))
+            .Concat(hc.HRV.Select(h => h.Time))
             .ToList();
 
         DateTime latestDataUtc = allDates.Any() ? allDates.Max() : DateTime.UtcNow;
         DateTime targetDateIst = TimeZoneInfo.ConvertTimeFromUtc(latestDataUtc, istZone).Date;
 
-        // 3. ACTIVITY WINDOW (Midnight to Midnight IST)
+        // 3. DEFINE WINDOWS (IST)
         DateTime activityStart = targetDateIst;
         DateTime activityEnd = targetDateIst.AddDays(1);
-
-        // 4. SLEEP WINDOW (Noon Yesterday to Noon Today IST)
         DateTime sleepStart = targetDateIst.AddHours(-12);
         DateTime sleepEnd = targetDateIst.AddHours(12);
 
-        // --- HELPER FUNCTIONS ---
-        bool IsTargetActivity(DateTime utcTime)
-        {
-            DateTime local = TimeZoneInfo.ConvertTimeFromUtc(utcTime, istZone);
-            return local >= activityStart && local < activityEnd;
-        }
+        // Helper Functions
+        bool IsTargetActivity(DateTime utcTime) => TimeZoneInfo.ConvertTimeFromUtc(utcTime, istZone) >= activityStart && TimeZoneInfo.ConvertTimeFromUtc(utcTime, istZone) < activityEnd;
+        bool IsTargetSleep(DateTime utcTime) => TimeZoneInfo.ConvertTimeFromUtc(utcTime, istZone) >= sleepStart && TimeZoneInfo.ConvertTimeFromUtc(utcTime, istZone) < sleepEnd;
 
-        bool IsTargetSleep(DateTime utcTime)
-        {
-            DateTime local = TimeZoneInfo.ConvertTimeFromUtc(utcTime, istZone);
-            return local >= sleepStart && local < sleepEnd;
-        }
+        // --- THE NEW MATH PIPELINE ---
 
-        // --- THE EXACT GABIT MATH ---
-        // Sleep Totals (Excludes "awake" stages)
+        // 1. Sleep: Mapper for numeric stages (4=Deep, 5/6=REM/Light depending on Health Connect version)
         var targetSleepSessions = hc.Sleep.Where(s => IsTargetSleep(s.SessionEndTime)).ToList();
-        int totalSleepSecs = targetSleepSessions
-            .SelectMany(s => s.Stages)
-            .Where(st => st.Stage != "awake")
-            .Sum(st => st.DurationSeconds);
+        int totalSleepSecs = targetSleepSessions.SelectMany(s => s.Stages).Where(st => st.Stage != "1" && st.Stage != "2").Sum(st => st.DurationSeconds);
         HealthState.VitalsSleepTotal = $"{totalSleepSecs / 3600}h {(totalSleepSecs % 3600) / 60}m";
 
-        // Deep Sleep Extraction
-        int deepSleepSecs = targetSleepSessions
-            .SelectMany(s => s.Stages)
-            .Where(st => st.Stage == "deep")
-            .Sum(st => st.DurationSeconds);
+        // 2. Deep Sleep: In mcnaveen's payload, Stage '4' represents Deep Sleep
+        int deepSleepSecs = targetSleepSessions.SelectMany(s => s.Stages).Where(st => st.Stage == "4").Sum(st => st.DurationSeconds);
         HealthState.VitalsSleepDeep = $"{deepSleepSecs / 3600}h {(deepSleepSecs % 3600) / 60}m";
 
-        // Activity (Steps, Calories, Distance)
-        // --- SAFEGUARDED STEPS MATH ---
-        int stepsDetected = hc.Steps.Where(s => IsTargetActivity(s.EndTime)).Sum(s => s.Count);
+        // 3. HRV: Pull the latest RMSSD for the target day
+        var targetHrv = hc.HRV.Where(h => IsTargetActivity(h.Time)).OrderByDescending(h => h.Time).FirstOrDefault();
+        HealthState.VitalsHrv = targetHrv != null ? Math.Round(targetHrv.Rmssd, 0).ToString() : "--";
 
-        // Only update the Global State if we actually found steps, 
-        // otherwise keep the 'Last Known Value' in memory.
-        if (stepsDetected > 0)
-        {
-            HealthState.VitalsSteps = stepsDetected.ToString("N0");
-        }
-        else if (HealthState.VitalsSteps == "0" || HealthState.VitalsSteps == "--")
-        {
-            // Fallback: If memory is empty and today is 0, look for the most recent day in history
-            DateTime stepAnchor = hc.Steps.Any() ? hc.Steps.Max(s => s.EndTime) : DateTime.MinValue;
-            if (stepAnchor != DateTime.MinValue)
-            {
-                HealthState.VitalsSteps = hc.Steps
-                    .Where(s => s.EndTime >= stepAnchor.Date && s.EndTime < stepAnchor.Date.AddDays(1))
-                    .Sum(s => s.Count).ToString("N0") + "*"; // Tiny star indicates 'last synced'
-            }
-        }
+        // --- 4. Activity: Steps & Distance (Pick the latest daily total instead of summing) ---
+        var latestSteps = hc.Steps.Where(s => IsTargetActivity(s.EndTime)).OrderByDescending(s => s.EndTime).FirstOrDefault();
+        HealthState.VitalsSteps = latestSteps != null ? latestSteps.Count.ToString("N0") : "0";
 
-        double activeCals = hc.ActiveCalories.Where(c => IsTargetActivity(c.EndTime)).Sum(c => c.Calories);
-        HealthState.VitalsCalories = Math.Round(activeCals, 0).ToString("N0") + " kcal";
+        var latestDist = hc.Distance.Where(d => IsTargetActivity(d.EndTime)).OrderByDescending(d => d.EndTime).FirstOrDefault();
+        HealthState.VitalsDistance = latestDist != null ? (latestDist.Meters / 1000.0).ToString("0.00") + " km" : "0.00 km";
 
-        double meters = hc.Distance.Where(d => IsTargetActivity(d.EndTime)).Sum(d => d.Meters);
-        HealthState.VitalsDistance = (meters / 1000.0).ToString("0.00") + " km";
+        // --- 5. Metabolic: Active Burn vs Total Burn (Pick the latest daily total) ---
+        var latestActiveCals = hc.ActiveCalories.Where(c => IsTargetActivity(c.EndTime)).OrderByDescending(c => c.EndTime).FirstOrDefault();
+        var latestTotalCals = hc.TotalCalories.Where(c => IsTargetActivity(c.EndTime)).OrderByDescending(c => c.EndTime).FirstOrDefault();
 
-        // Resting HR
+        HealthState.VitalsCalories = latestActiveCals != null ? Math.Round(latestActiveCals.Calories, 0).ToString("N0") + " kcal" : "0 kcal";
+        HealthState.VitalsTotalCalories = latestTotalCals != null ? Math.Round(latestTotalCals.Calories, 0).ToString("N0") + " kcal" : "0 kcal";
+
+        // 6. RHR
         var targetRhr = hc.RestingHeartRate.Where(r => IsTargetActivity(r.Time)).OrderByDescending(r => r.Time).FirstOrDefault();
         HealthState.VitalsRhr = targetRhr != null ? targetRhr.Bpm.ToString() : "--";
 
-        // Construct Brief for Apex
-        HealthState.ReadinessBrief = $"[TARGET DAY: {targetDateIst:MMM dd}] Sleep: {HealthState.VitalsSleepTotal}. Deep: {HealthState.VitalsSleepDeep}. RHR: {HealthState.VitalsRhr} bpm. Steps: {HealthState.VitalsSteps}. Burn: {HealthState.VitalsCalories}.";
+        // 7. Construct Final AI Readiness Brief (Now with HRV and Total Metabolic Load)
+        HealthState.ReadinessBrief = $"[TARGET DAY: {targetDateIst:MMM dd}] Sleep: {HealthState.VitalsSleepTotal} (Deep: {HealthState.VitalsSleepDeep}). RHR: {HealthState.VitalsRhr} bpm. HRV: {HealthState.VitalsHrv}. Steps: {HealthState.VitalsSteps}. Active Burn: {HealthState.VitalsCalories} (Total: {Math.Round(latestTotalCals.Calories, 0)} kcal).";
     }
 
     // --- GIST DATA (INBODY & CONDITIONS) ---
     using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
     try
     {
-        string inBodyUrl = "https://gist.githubusercontent.com/Arrow023/027ff993cc4f6005c9c21c7ab155d89f/raw/9d667db3e1bd1deac5853b3a2ae9fa136268a719/latest_inbody.json";
-        string conditionsUrl = "https://gist.githubusercontent.com/Arrow023/f57aa21f17e478414bd63ee5083fcffa/raw/9d10018311fa3c3a4d8ebb06ee147d5e55a97349/user_conditions.txt";
+        string inBodyUrl = config["ExternalData:InBodyUrl"];
+        string conditionsUrl = config["ExternalData:ConditionsUrl"];
 
         HealthState.ConditionsBrief = await client.GetStringAsync(conditionsUrl);
-
         var scan = JsonSerializer.Deserialize<InBodyExport>(await client.GetStringAsync(inBodyUrl));
+        
         if (scan != null)
         {
             HealthState.InBodyWeight = scan.Core.WeightKg.ToString("0.0");
             HealthState.InBodyBf = scan.Core.Pbf.ToString("0.0");
             HealthState.InBodySmm = scan.Core.SmmKg.ToString("0.0");
             HealthState.InBodyBmr = scan.Metabolism.Bmr.ToString();
-            HealthState.InBodyFatTarget = scan.Targets.FatControl.ToString("0.0");
+            HealthState.InBodyVisceral = scan.Metabolism.VisceralFatLevel.ToString();
+            HealthState.InBodyBmi = scan.Core.Bmi.ToString();
 
             var weak = new List<string>();
             if (scan.LeanBalance.LeftLeg == "Under" || scan.LeanBalance.RightLeg == "Under") weak.Add("Legs");
@@ -439,7 +444,7 @@ static async Task LoadHealthStateAsync(HealthExportPayload hc)
             if (scan.LeanBalance.Trunk == "Under") weak.Add("Core");
             HealthState.InBodyImbalances = weak.Any() ? string.Join(", ", weak) : "Balanced";
 
-            HealthState.InBodyBrief = $"Weight: {HealthState.InBodyWeight}kg. Body Fat: {HealthState.InBodyBf}%. BMR: {HealthState.InBodyBmr} kcal. Goals: Lose {Math.Abs(scan.Targets.FatControl)}kg fat and gain {scan.Targets.MuscleControl}kg muscle. Critical Underdeveloped Muscles: {HealthState.InBodyImbalances}.";
+            HealthState.InBodyBrief = $"Weight: {HealthState.InBodyWeight}kg. Body Fat: {HealthState.InBodyBf}%. BMR: {HealthState.InBodyBmr} kcal. SMM: {HealthState.InBodySmm}kg VisceralFat: {HealthState.InBodyVisceral} BMI: {HealthState.InBodyBmi} Focus: {HealthState.InBodyImbalances}.";
         }
     }
     catch { /* Defaults remain if HTTP fails */ }
