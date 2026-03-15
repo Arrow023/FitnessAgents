@@ -1,41 +1,128 @@
-# Fitness Agents AI - Single-Tenant Orchestration Platform
+# HealthAssistant AI - Personalized Fitness Orchestrator
 
-A powerful, single-tenant, multi-user web application and AI orchestrator designed to track biological baselines, daily health metrics, and autonomously generate and email highly personalized workout and diet plans. Built on C# .NET 8 MVC and Firebase Realtime Database.
+HealthAssistant AI is a sophisticated, AI-driven fitness and nutrition ecosystem designed to provide hyper-personalized coaching by integrating biological data, daily activity metrics, and user preferences. It leverages state-of-the-art Large Language Models (LLMs) and Computer Vision to act as a private Strength Coach and Sports Nutritionist.
 
-## Core Features
+---
 
-- **Single-Tenant Architecture**: A unified global configuration for the application environment, allowing the primary administrator to effortlessly provision and monitor multiple user accounts.
-- **Background AI Scheduler (`WorkoutEmailSchedulerService`)**: AI generation is entirely decoupled from the webhook ingestion. Users can configure their absolute preferred "Daily Notification Time". The system's background worker wakes up, cross-references profiles, executes the deep AI reasoning phase asynchronously, and fires the email without blocking front-end operations.
-- **Firebase Realtime Sync**: All state is exclusively saved to Firebase. The `/config/app_settings` node manages global SMTP/AI keys. The `/users/{userId}/` node isolates HealthConnect streams, InBody data, weekly workout history, and user profile schedules. Absolutely no user data is saved to local disks.
-- **Premium Fitness Dashboard**: A vibrant, high-energy UI built with modern CSS variables, utilizing `Chart.js` for beautiful interactive visualizations of Sleep tracking and Body Composition (Skeletal Muscle Mass vs. Body Fat percentage).
-- **InBody OCR Vision Agent**: Upload physical InBody fat/muscle composition scan printouts directly to the Dashboard. The application leverages an OpenAI-compatible Vision Model to extract detailed metrics (SMM, PBF, Visceral Fat) into a unified JSON structure, overwriting the user's biological baseline.
-- **Dietician Agent**: A secondary AI agent that works in tandem with the primary coach. It analyzes the newly generated workout, the user's total burned calories, and physiological metrics to spit out a robust, science-backed recovery diet plan appended to the daily email.
+## 📑 Table of Contents
+- [Introduction](#introduction)
+- [✨ Core Features](#-core-features)
+  - [AI Strength Coach](#ai-strength-coach)
+  - [AI Sports Nutritionist](#ai-sports-nutritionist)
+  - [InBody OCR Vision](#inbody-ocr-vision)
+- [🧩 Technical Architecture](#-technical-architecture)
+- [🚀 Getting Started](#-getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Initial Setup](#initial-setup)
+  - [Running the Application](#running-the-application)
+- [⚙️ Global Configuration](#-global-configuration)
+- [📦 Dependencies](#-dependencies)
+- [📂 Directory Structure](#-directory-structure)
 
-## Setup & Execution
+---
 
-### 1. Environmental Configuration
-The application relies strictly on environment variables for database connections, ensuring it is 100% Docker-ready and secure.
+## ✨ Core Features
+
+### AI Strength Coach
+The AI Strength Coach orchestrates your weekly workout plan based on real-time data from your smart ring (Sleep, HRV, Steps, Active Burn).
+- **Personalized Readiness**: Adjusts workout intensity based on your recovery metrics.
+- **Configurable Schedule**: Users can define their own target muscle groups for Monday through Sunday.
+- **Progressive Narrative**: The AI maintains a "persona" to encourage and guide you like a real-time coach.
+
+### AI Sports Nutritionist
+A dedicated diet agent that drafts daily macro-optimized recovery plans.
+- **Food Preferences**: Respects dietary restrictions (e.g., Vegetarian, specific dislikes).
+- **History Aware**: Tracks your diet history for the week to ensure variety and smart recommendations.
+- **Beautiful UI**: Visualizes meal plans with macro breakdowns and beautiful CSS cards.
+
+### InBody OCR Vision
+Automatically extracts biological data from InBody scan images.
+- **Vision Mapping**: Uses high-end OCR models to translate image data into structured JSON.
+- **Metric Insights**: Tracks Weight, Body Fat %, Muscle Mass (SMM), BMR, and detect muscular imbalances.
+
+---
+
+## 🧩 Technical Architecture
+
+The application is built on **ASP.NET Core 8 MVC** with a modular service-oriented architecture:
+
+- **AI Orchestration**: The `AiOrchestratorService` coordinates between multiple AI agents and the data layer.
+- **Storage Layer**: Uses **Firebase Realtime Database** for global settings and user-specific profiles/history.
+- **Prompt Engineering**: Dynamic prompt generation utilizing `HealthDataTools` to inject real-time context into LLM calls.
+- **Notification System**: Integrated SMTP service for delivering daily plans via high-quality HTML emails.
+- **Logging**: Advanced **Serilog** integration with custom timezone enrichment for accurate server-side tracking.
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- A Firebase Project (for Realtime Database)
+- API Keys for:
+  - NVIDIA NIM or OpenAI (LLM)
+  - AI Vision/OCR Provider
+
+### Initial Setup
+1. **Clone the repository**:
+   ```bash
+   git clone <repo-url>
+   cd FitnessAgentsWeb
+   ```
+2. **First Run Configuration**:
+   When you first run the application, navigate to `/Setup`. You will be prompted to:
+   - Configure Master Admin credentials.
+   - Set up AI Model Endpoints and API Keys.
+   - Configure SMTP credentials for email delivery.
+   - Select your Global Application Timezone.
+
+### Running the Application
 ```bash
-# Windows PowerShell
-$env:FIREBASE_DATABASE_URL="https://your-project-url.firebasedatabase.app/"
-
-# Linux/macOS
-export FIREBASE_DATABASE_URL="https://your-project-url.firebasedatabase.app/"
-```
-
-### 2. Run the Application
-```bash
-dotnet build
 dotnet run
 ```
-On first launch, if the global configurations (AI, SMTP, Admin user) are not found in the Firebase `/config/app_settings` node, the application will lock down and automatically redirect you to the `/Setup` onboarding screen.
+Access the application at `https://localhost:5001` or `http://localhost:5000`.
 
-## Webhooks
+---
 
-Each user possesses a unique webhook endpoint exposed via:
-`POST /api/webhooks/{userId}/generate-workout`
+## ⚙️ Global Configuration
 
-This endpoint operates instantaneously, cleanly merging the standard `HealthConnect` payload into Firebase and returning `HTTP 200 OK`. The Background Scheduler will automatically aggregate this data when it's time to generate the user's plan.
+Administrators can update global system settings via the **Global App Configuration** menu:
+- **Regional Settings**: Update the application-wide timezone (e.g., IST, EST, UTC).
+- **AI Orchestration**: Update model names (e.g., `meta/llama-3.1-70b-instruct`) and endpoint URLs.
+- **Webhook Security**: Users can configure custom header keys/values in their **Preferences** tab to secure their data ingest API.
 
-## Manual Overrides
-Administrators and users can manually trigger the immediate generation and dispatch of emails (bypassing the Background Scheduler) directly from the Dashboard utilizing the **"Email Diet & Workout Plan"** action button.
+---
+
+## 📦 Dependencies
+
+Major packages utilized in this project:
+
+| Package | Version | Purpose |
+| :--- | :--- | :--- |
+| `FirebaseDatabase.net` | 5.0.0 | Realtime database interaction |
+| `FirebaseAdmin` | 3.4.0 | Firebase authentication and admin SDK |
+| `Microsoft.Extensions.AI` | 10.3.0 | Unified AI service abstractions |
+| `Serilog.AspNetCore` | 10.0.0 | Structured logging |
+| `Markdig` | 1.1.1 | Markdown to HTML rendering for AI outputs |
+| `Swashbuckle` | 6.6.2 | API Documentation/Swagger |
+
+---
+
+## 📂 Directory Structure
+
+```text
+FitnessAgentsWeb/
+├── Controllers/         # MVC Controllers (Dashboard, Admin, Webhooks)
+├── Core/
+│   ├── Configuration/   # IAppConfiguration and Firebase providers
+│   ├── Helpers/         # Timezone and Markdown utilities
+│   ├── Services/        # AI orchestration, storage repos, and email
+├── Models/              # Health records, User profiles, and AI payloads
+├── Views/               # Razor templates (Premium Glassmorphism UI)
+├── Tools/               # Helper classes for AI tool-calling
+└── Templates/           # HTML Email templates for plans
+```
+
+---
+
+*Designed with ❤️ for elite performance tracking.*
