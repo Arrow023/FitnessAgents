@@ -27,6 +27,7 @@ namespace FitnessAgentsWeb.Core.Configuration
         
         public string GetAdminEmail() => _configuration["Admin:Email"] ?? string.Empty;
         public string GetAdminPassword() => _configuration["Admin:Password"] ?? string.Empty;
+        public string GetAppTimezone() => _configuration["Regional:Timezone"] ?? "India Standard Time";
         
         public bool IsConfigured()
         {

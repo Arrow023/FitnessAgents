@@ -35,14 +35,15 @@ namespace FitnessAgentsWeb.Controllers
             string ocrKey,
             string smtpHost, 
             string smtpPort, 
-            string fromEmail, 
-            string smtpPassword)
+            string fromEmail,
+            string smtpPassword,
+            string timezone)
         {
             // Simple validation could be added here
             await _configManager.SaveSetupSettingsAsync(
                 adminEmail, adminPassword, aiModel, aiEndpoint, aiKey, 
                 ocrModel, ocrEndpoint, ocrKey,
-                smtpHost, smtpPort, fromEmail, smtpPassword);
+                smtpHost, smtpPort, fromEmail, smtpPassword, timezone);
 
             return RedirectToAction("Login", "Auth");
         }

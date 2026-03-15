@@ -175,6 +175,10 @@ namespace FitnessAgentsWeb.Core.Services
                 {
                     context.FoodPreferences = profile.FoodPreferences;
                 }
+                if (profile.WorkoutSchedule != null && profile.WorkoutSchedule.Any())
+                {
+                    context.WorkoutSchedule = profile.WorkoutSchedule;
+                }
             }
             else
             {

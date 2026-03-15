@@ -25,6 +25,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Templates\DietEmailTemplate.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Templates\EmailTemplate.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

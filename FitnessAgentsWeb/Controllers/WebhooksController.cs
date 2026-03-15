@@ -11,16 +11,36 @@ namespace FitnessAgentsWeb.Controllers
     public class WebhooksController : ControllerBase
     {
         private readonly IAiOrchestratorService _orchestrator;
+        private readonly IStorageRepository _storageRepository;
 
-        public WebhooksController(IAiOrchestratorService orchestrator)
+        public WebhooksController(IAiOrchestratorService orchestrator, IStorageRepository storageRepository)
         {
             _orchestrator = orchestrator;
+            _storageRepository = storageRepository;
         }
 
         [HttpPost("/api/webhooks/{userId}/generate-workout")]
         public async Task<IActionResult> GenerateWorkout(string userId)
         {
-            userId = userId?.ToLowerInvariant();
+            userId = userId?.ToLowerInvariant() ?? "default_user";
+
+            // Security Check
+            var profiles = await _storageRepository.GetAllUserProfilesAsync();
+            if (profiles.TryGetValue(userId, out var profile))
+            {
+                if (!string.IsNullOrWhiteSpace(profile.WebhookHeaderKey) && !string.IsNullOrWhiteSpace(profile.WebhookHeaderValue))
+                {
+                    if (!Request.Headers.TryGetValue(profile.WebhookHeaderKey, out var headerValue) || headerValue != profile.WebhookHeaderValue)
+                    {
+                        return Unauthorized("Invalid webhook security header.");
+                    }
+                }
+            }
+            else
+            {
+                return Unauthorized("User profile not found.");
+            }
+
             using var reader = new StreamReader(Request.Body);
             var incomingJson = await reader.ReadToEndAsync();
             

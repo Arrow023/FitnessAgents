@@ -1,4 +1,4 @@
-﻿using FitnessAgentsWeb.Models;
+using FitnessAgentsWeb.Models;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -26,16 +26,13 @@ namespace FitnessAgentsWeb.Tools
         [Description("Fetches the intended gym workout schedule and target muscle groups for today.")]
         public string GetWorkoutSchedule()
         {
-            // TODO: Fetch this from user profile in Firebase eventually. 
-            // Hardcoded schedule for now.
             string today = DateTime.Now.DayOfWeek.ToString();
-            var schedule = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            
+            if (_context.WorkoutSchedule != null && _context.WorkoutSchedule.TryGetValue(today, out string targetWorkout))
             {
-                { "Monday", "Fasting" }, { "Tuesday", "Chest and Triceps" },
-                { "Wednesday", "Back and Biceps" }, { "Thursday", "Shoulders" },
-                { "Friday", "Core and Abs" }, { "Saturday", "Legs" }, { "Sunday", "Active Recovery" }
-            };
-            if (schedule.TryGetValue(today, out string targetWorkout)) return $"Today is {today}. Scheduled Focus: {targetWorkout}.";
+                return $"Today is {today}. Scheduled Focus: {targetWorkout}.";
+            }
+
             return $"Today is {today}. Do a full-body routine.";
         }
 

@@ -8,7 +8,10 @@ namespace FitnessAgentsWeb.Core.Interfaces
         // For the webhook to append data only
         Task<bool> AppendHealthDataAsync(string userId, HealthExportPayload newPayload);
 
-        // For the background scheduler to run the AI
-        Task<bool> ProcessAndGenerateAsync(string userId, HealthExportPayload? newPayload = null);
+        // For the background scheduler or manual trigger (can skip email)
+        Task<bool> ProcessAndGenerateAsync(string userId, HealthExportPayload? newPayload = null, bool sendEmail = true);
+
+        // Explicitly send stored plans
+        Task<bool> EmailStoreDietPlanAsync(string userId, DietPlan diet);
     }
 }

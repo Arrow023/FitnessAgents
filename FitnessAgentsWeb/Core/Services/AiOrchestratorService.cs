@@ -1,10 +1,12 @@
 using FitnessAgentsWeb.Core.Factories;
 using FitnessAgentsWeb.Core.Interfaces;
+using FitnessAgentsWeb.Core.Configuration;
 using FitnessAgentsWeb.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Threading.Tasks;
+using FitnessAgentsWeb.Core.Helpers;
 
 namespace FitnessAgentsWeb.Core.Services
 {
@@ -14,6 +16,7 @@ namespace FitnessAgentsWeb.Core.Services
         private readonly HealthDataProcessorFactory _processorFactory;
         private readonly AiAgentServiceFactory _aiFactory;
         private readonly NotificationServiceFactory _notificationFactory;
+        private readonly IAppConfigurationProvider _configProvider;
         private readonly Microsoft.Extensions.Logging.ILogger<AiOrchestratorService> _logger;
 
         public AiOrchestratorService(
@@ -21,12 +24,14 @@ namespace FitnessAgentsWeb.Core.Services
             HealthDataProcessorFactory processorFactory,
             AiAgentServiceFactory aiFactory,
             NotificationServiceFactory notificationFactory,
+            IAppConfigurationProvider configProvider,
             Microsoft.Extensions.Logging.ILogger<AiOrchestratorService> logger)
         {
             _storageFactory = storageFactory;
             _processorFactory = processorFactory;
             _aiFactory = aiFactory;
             _notificationFactory = notificationFactory;
+            _configProvider = configProvider;
             _logger = logger;
         }
 
@@ -53,7 +58,7 @@ namespace FitnessAgentsWeb.Core.Services
             }
         }
 
-        public async Task<bool> ProcessAndGenerateAsync(string userId, HealthExportPayload? newPayload = null)
+        public async Task<bool> ProcessAndGenerateAsync(string userId, HealthExportPayload? newPayload = null, bool sendEmail = true)
         {
             try
             {
@@ -172,11 +177,9 @@ namespace FitnessAgentsWeb.Core.Services
                 var weeklyHistory = await storageRepo.GetWeeklyHistoryAsync(userId) ?? new WeeklyWorkoutHistory();
                 var weeklyDietHistory = await storageRepo.GetWeeklyDietHistoryAsync(userId) ?? new WeeklyDietHistory();
 
-                DateTime nowIst;
-                try { nowIst = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("India Standard Time")); }
-                catch { nowIst = DateTime.Now; }
-
-                string todayString = nowIst.DayOfWeek.ToString();
+                string tzId = _configProvider.GetAppTimezone();
+                var appNow = TimezoneHelper.GetAppNow(tzId);
+                string todayString = appNow.DayOfWeek.ToString();
 
                 weeklyHistory.PastWorkouts[todayString] = finalMarkdown;
                 await storageRepo.SaveWeeklyHistoryAsync(userId, weeklyHistory);
@@ -187,14 +190,21 @@ namespace FitnessAgentsWeb.Core.Services
                     await storageRepo.SaveWeeklyDietHistoryAsync(userId, weeklyDietHistory);
                 }
 
-                // Send the Email
-                if (!string.IsNullOrEmpty(userContext.Email))
+                // Send the Email (Combined)
+                if (sendEmail)
                 {
-                    await notifier.SendWorkoutNotificationAsync(userContext.Email, finalMarkdown, userContext);
+                    if (!string.IsNullOrEmpty(userContext.Email))
+                    {
+                        await notifier.SendWorkoutNotificationAsync(userContext.Email, finalMarkdown, userContext);
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"[System] No email configured for {userId}. Skipping email notification.");
+                    }
                 }
                 else
                 {
-                    _logger.LogWarning($"[System] No email configured for {userId}. Skipping email notification.");
+                    _logger.LogInformation($"[System] Generation only for {userId}. Skipping automated email.");
                 }
                 
                 return true;
@@ -202,6 +212,32 @@ namespace FitnessAgentsWeb.Core.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"[Error in AiOrchestratorService] processing for {userId}");
+                return false;
+            }
+        }
+
+        public async Task<bool> EmailStoreDietPlanAsync(string userId, DietPlan diet)
+        {
+            try
+            {
+                var healthProcessor = _processorFactory.Create();
+                var notifier = _notificationFactory.Create();
+
+                var healthData = await _storageFactory.Create().GetTodayHealthDataAsync(userId);
+                var userContext = await healthProcessor.LoadHealthStateToRAMAsync(userId, healthData);
+
+                if (string.IsNullOrEmpty(userContext.Email))
+                {
+                    _logger.LogWarning($"[System] No email for {userId}. Cannot send Diet plan.");
+                    return false;
+                }
+
+                await notifier.SendDietNotificationAsync(userContext.Email, diet, userContext);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"[Error] Failed to email stored diet plan for {userId}");
                 return false;
             }
         }

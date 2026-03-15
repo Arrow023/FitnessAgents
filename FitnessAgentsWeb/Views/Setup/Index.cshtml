@@ -71,6 +71,24 @@
             </div>
         </div>
 
+        <h3 style="color: var(--primary); margin-bottom: 1rem; margin-top: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">Regional Settings</h3>
+        <div class="form-group">
+            <label>Application Timezone</label>
+            <select name="timezone" class="form-control" style="width: 100%; background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border); border-radius: 8px; padding: 10px;">
+                @foreach (var tz in FitnessAgentsWeb.Core.Helpers.TimezoneHelper.GetAllTimezones())
+                {
+                    @if (tz == "India Standard Time")
+                    {
+                        <option value="@tz" selected>@tz (Default)</option>
+                    }
+                    else
+                    {
+                        <option value="@tz">@tz</option>
+                    }
+                }
+            </select>
+        </div>
+
         <div style="margin-top: 2rem;">
             <button type="submit" class="btn">Initialize Dashboard</button>
         </div>

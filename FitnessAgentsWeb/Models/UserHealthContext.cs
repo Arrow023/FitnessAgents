@@ -32,5 +32,6 @@ namespace FitnessAgentsWeb.Models
         public string WeeklyHistoryBrief { get; set; } = "No workouts recorded yet this week.";
         public string FoodPreferences { get; set; } = "No specific food preferences.";
         public string DietHistoryBrief { get; set; } = "No previous diet history for this week.";
+        public System.Collections.Generic.Dictionary<string, string> WorkoutSchedule { get; set; } = new();
     }
 }

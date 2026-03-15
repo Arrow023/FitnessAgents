@@ -15,5 +15,6 @@ namespace FitnessAgentsWeb.Core.Configuration
         string GetToEmail();
         string GetAdminEmail();
         string GetAdminPassword();
+        string GetAppTimezone();
     }
 }

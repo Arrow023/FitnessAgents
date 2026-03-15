@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using FitnessAgentsWeb.Core.Helpers;
 
 namespace FitnessAgentsWeb.Core.Configuration
 {
@@ -30,6 +31,7 @@ namespace FitnessAgentsWeb.Core.Configuration
 
         private string _adminEmail = string.Empty;
         private string _adminPassword = string.Empty;
+        private string _appTimezone = "India Standard Time";
 
         private readonly Microsoft.Extensions.Logging.ILogger<FirebaseSettingsProvider> _logger;
 
@@ -71,7 +73,8 @@ namespace FitnessAgentsWeb.Core.Configuration
             string adminEmail, string adminPassword, 
             string aiModel, string aiEndpoint, string aiKey, 
             string ocrModel, string ocrEndpoint, string ocrKey,
-            string smtpHost, string smtpPort, string fromEmail, string smtpPassword)
+            string smtpHost, string smtpPort, string fromEmail, string smtpPassword,
+            string timezone)
         {
             var configData = new Dictionary<string, object>
             {
@@ -86,7 +89,8 @@ namespace FitnessAgentsWeb.Core.Configuration
                 { "SmtpHost", smtpHost },
                 { "SmtpPort", smtpPort },
                 { "FromEmail", fromEmail },
-                { "SmtpPassword", smtpPassword }
+                { "SmtpPassword", smtpPassword },
+                { "AppTimezone", timezone }
             };
 
             // Save global configuration
@@ -149,6 +153,9 @@ namespace FitnessAgentsWeb.Core.Configuration
 
                     _adminEmail = snapshot.ContainsKey("AdminEmail") ? snapshot["AdminEmail"].ToString()! : "";
                     _adminPassword = snapshot.ContainsKey("AdminPassword") ? snapshot["AdminPassword"].ToString()! : "";
+                    _appTimezone = snapshot.ContainsKey("AppTimezone") ? snapshot["AppTimezone"].ToString()! : "India Standard Time";
+                    
+                    TimezoneHelper.CurrentTimezoneId = _appTimezone;
                     
                     _logger.LogInformation($"[FirebaseSettingsProvider] Loaded global settings from Realtime DB");
                 }
@@ -179,5 +186,6 @@ namespace FitnessAgentsWeb.Core.Configuration
 
         public string GetAdminEmail() => _adminEmail;
         public string GetAdminPassword() => _adminPassword;
+        public string GetAppTimezone() => _appTimezone;
     }
 }

@@ -8,6 +8,7 @@ using System.ClientModel;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using FitnessAgentsWeb.Core.Helpers;
 
 namespace FitnessAgentsWeb.Core.Services
 {
@@ -53,6 +54,12 @@ namespace FitnessAgentsWeb.Core.Services
                 return aiResponse.Substring(start, end - start + 1).Trim();
             }
             return "{}";
+        }
+
+        protected DateTime GetAppNow()
+        {
+            string tzId = _configProvider.GetAppTimezone();
+            return TimezoneHelper.GetAppNow(tzId);
         }
     }
 }

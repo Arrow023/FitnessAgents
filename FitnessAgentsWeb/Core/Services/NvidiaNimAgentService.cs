@@ -18,15 +18,16 @@ namespace FitnessAgentsWeb.Core.Services
             : base(configProvider, logger)
         {
         }
-
         public async Task<string> GenerateWorkoutAsync(Models.UserHealthContext context)
         {
             IChatClient chatClient = GetChatClient();
+            string todayDate = GetAppNow().ToString("dddd, MMM dd, yyyy");
 
             string prompt = $@"STRICT RESTRCTION: DO NOT include any reasoning, thought process, or preamble. Return ONLY the JSON object.
             
             You are an elite Strength & Conditioning Coach. 
             Create a professional training session for {context.FirstName}.
+            TODAY'S DATE: {todayDate}
             
             USER PROFILE:
             Weight: {context.InBodyWeight}kg
@@ -81,10 +82,12 @@ namespace FitnessAgentsWeb.Core.Services
         public async Task<string> GenerateRecoveryDietJsonAsync(string upcomingWorkoutPlan, Models.UserHealthContext context)
         {
             IChatClient chatClient = GetChatClient();
+            string todayDate = GetAppNow().ToString("dddd, MMM dd, yyyy");
 
             string prompt = $@"STRICT RESTRCTION: DO NOT include any reasoning, thought process, or preamble. Return ONLY the JSON object.
             
             You are a leading Clinical Sports Nutritionist.
+            TODAY'S DATE: {todayDate}
             Your client, {context.FirstName}, has just received the following training protocol for today:
             
             WORKOUT PLAN:

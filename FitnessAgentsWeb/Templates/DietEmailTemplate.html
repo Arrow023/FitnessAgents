@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body, table, td, a {
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100% !important;
+            background-color: #f4f4f5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; width: 100% !important; background-color: #f4f4f5;">
+
+    <div style="background-color: #f4f4f5; padding: 40px 15px;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e5e7eb; box-shadow: 0 10px 30px rgba(0,0,0,0.04);">
+
+            <div style="padding: 45px 40px 30px 40px; text-align: left; border-bottom: 1px solid #f3f4f6;">
+                <div style="display: inline-block; background-color: #ec4899; color: #ffffff; font-size: 10px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; padding: 4px 10px; border-radius: 4px; margin-bottom: 16px;">Nutrition Plan</div>
+                <h1 style="margin: 0 0 8px 0; color: #111827; font-size: 32px; font-weight: 800; letter-spacing: -0.5px;">Elite Nutritionist</h1>
+                <p style="margin: 0; color: #6b7280; font-size: 16px; font-weight: 500;">{{DATE}}</p>
+            </div>
+
+            <div style="padding: 30px 40px; background-color: #fafafa; border-bottom: 1px solid #f3f4f6;">
+                <div style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; box-sizing: border-box;">
+                    <h3 style="margin: 0 0 10px 0; color: #111827; font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">📊 Daily Target: {{TOTAL_CALORIES}} kcal</h3>
+                    <p style="margin: 0; color: #4b5563; font-style: italic; line-height: 1.6; font-size: 14px;">"{{AI_SUMMARY}}"</p>
+                </div>
+            </div>
+
+            <div style="padding: 35px 40px 45px 40px; background-color: #ffffff;">
+                {{DIET_CONTENT}}
+            </div>
+
+            <div style="background-color: #f9fafb; padding: 24px; text-align: center; border-top: 1px solid #f3f4f6;">
+                <p style="margin: 0; color: #9ca3af; font-size: 12px; font-weight: 500;">Nutrition plan optimized for your recovery & vitals</p>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>

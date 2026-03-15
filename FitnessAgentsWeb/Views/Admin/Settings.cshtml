@@ -61,8 +61,29 @@
                 <input type="email" name="fromEmail" value="@Model.GetFromEmail()" required />
             </div>
             <div class="form-group">
-                <label>SMTP App Password</label>
+                <label>App Password</label>
                 <input type="password" name="smtpPassword" value="@Model.GetSmtpPassword()" required />
+            </div>
+        </div>
+
+        <!-- Regional Settings -->
+        <div class="glass-panel">
+            <h3 style="margin-top: 0; color: var(--text); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">Regional Settings</h3>
+            <div class="form-group" style="margin-top: 1rem;">
+                <label>Application Timezone</label>
+                <select name="timezone" class="form-control" style="width: 100%; background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border); border-radius: 8px; padding: 10px;">
+                    @foreach (var tz in FitnessAgentsWeb.Core.Helpers.TimezoneHelper.GetAllTimezones())
+                    {
+                        if (tz == Model.GetAppTimezone())
+                        {
+                            <option value="@tz" selected>@tz</option>
+                        }
+                        else
+                        {
+                            <option value="@tz">@tz</option>
+                        }
+                    }
+                </select>
             </div>
         </div>
 

@@ -31,13 +31,15 @@ namespace FitnessAgentsWeb.Controllers
             string adminEmail, string adminPassword, 
             string aiModel, string aiEndpoint, string aiKey, 
             string ocrModel, string ocrEndpoint, string ocrKey,
-            string smtpHost, string smtpPort, string fromEmail, string smtpPassword)
+            string smtpHost, string smtpPort, string fromEmail, string smtpPassword,
+            string timezone)
         {
             await _appConfig.SaveSetupSettingsAsync(
                 adminEmail, adminPassword, 
                 aiModel, aiEndpoint, aiKey, 
                 ocrModel, ocrEndpoint, ocrKey,
-                smtpHost, smtpPort, fromEmail, smtpPassword);
+                smtpHost, smtpPort, fromEmail, smtpPassword,
+                timezone);
 
             return RedirectToAction("Settings");
         }

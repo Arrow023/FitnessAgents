@@ -11,17 +11,16 @@ var builder = WebApplication.CreateBuilder(args);
 var logsFolder = Path.Combine(builder.Environment.ContentRootPath, "Logs");
 if (!Directory.Exists(logsFolder)) Directory.CreateDirectory(logsFolder);
 
-Log.Logger = new LoggerConfiguration()
+builder.Host.UseSerilog((context, services, configuration) => configuration
     .MinimumLevel.Information()
-    .WriteTo.Console(outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] {Level:u3} {Message:lj}{NewLine}{Exception}")
+    .Enrich.FromLogContext()
+    .Enrich.With(new FitnessAgentsWeb.Core.Logging.TimezoneTimestampEnricher())
+    .WriteTo.Console(outputTemplate: "[{AppTimestamp}] {Level:u3} {Message:lj}{NewLine}{Exception}")
     .WriteTo.File(
         Path.Combine(logsFolder, "fitness-assist-.log"), 
         rollingInterval: RollingInterval.Day,
         retainedFileCountLimit: 7,
-        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] {Level:u3} {Message:lj}{NewLine}{Exception}")
-    .CreateLogger();
-
-builder.Host.UseSerilog();
+        outputTemplate: "[{AppTimestamp}] {Level:u3} {Message:lj}{NewLine}{Exception}"));
 
 // Add MVC services for upcoming Dashboard
 builder.Services.AddControllersWithViews();
@@ -54,6 +53,11 @@ builder.Services.AddScoped<IHealthDataProcessor>(sp =>
 builder.Services.AddSingleton<HealthDataProcessorFactory>();
 builder.Services.AddSingleton<AiAgentServiceFactory>();
 builder.Services.AddSingleton<NotificationServiceFactory>();
+builder.Services.AddScoped<INotificationService>(sp => 
+{
+    var factory = sp.GetRequiredService<NotificationServiceFactory>();
+    return factory.Create();
+});
 builder.Services.AddSingleton<InBodyOcrService>();
 builder.Services.AddSingleton<IAiOrchestratorService, AiOrchestratorService>();
 

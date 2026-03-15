@@ -119,7 +119,11 @@ namespace FitnessAgentsWeb.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> UpdatePreferences(string userId, string email, string notificationTime, string preferences, string foodPreferences, string firstName, string lastName, string newPassword)
+        public async Task<IActionResult> UpdatePreferences(
+            string userId, string email, string notificationTime, string preferences, string foodPreferences, 
+            string firstName, string lastName, string newPassword, string? webhookHeaderKey, string? webhookHeaderValue,
+            string scheduleMonday, string scheduleTuesday, string scheduleWednesday, string scheduleThursday,
+            string scheduleFriday, string scheduleSaturday, string scheduleSunday)
         {
             var profiles = await _storageRepository.GetAllUserProfilesAsync();
             if (profiles.TryGetValue(userId, out var profile))
@@ -130,6 +134,16 @@ namespace FitnessAgentsWeb.Controllers
                 profile.FoodPreferences = foodPreferences;
                 profile.FirstName = firstName;
                 profile.LastName = lastName;
+                profile.WebhookHeaderKey = webhookHeaderKey;
+                profile.WebhookHeaderValue = webhookHeaderValue;
+
+                profile.WorkoutSchedule["Monday"] = scheduleMonday;
+                profile.WorkoutSchedule["Tuesday"] = scheduleTuesday;
+                profile.WorkoutSchedule["Wednesday"] = scheduleWednesday;
+                profile.WorkoutSchedule["Thursday"] = scheduleThursday;
+                profile.WorkoutSchedule["Friday"] = scheduleFriday;
+                profile.WorkoutSchedule["Saturday"] = scheduleSaturday;
+                profile.WorkoutSchedule["Sunday"] = scheduleSunday;
                 
                 if (!string.IsNullOrEmpty(newPassword))
                 {
@@ -145,8 +159,32 @@ namespace FitnessAgentsWeb.Controllers
         public IActionResult TriggerPlanEmail(string userId)
         {
             userId = userId?.ToLowerInvariant();
-            // Fire and Forget exactly as requested
-            _ = Task.Run(() => _orchestrator.ProcessAndGenerateAsync(userId));
+            // Generation ONLY (No automatic email)
+            _ = Task.Run(() => _orchestrator.ProcessAndGenerateAsync(userId, null, sendEmail: false));
+            return RedirectToAction("Index", new { userId = userId });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ResendDietPlan(string userId, string dayOfWeek)
+        {
+            userId = userId?.ToLowerInvariant();
+            var dietHistory = await _storageRepository.GetWeeklyDietHistoryAsync(userId);
+            
+            if (dietHistory != null && dietHistory.PastDiets.ContainsKey(dayOfWeek))
+            {
+                var dietPlan = dietHistory.PastDiets[dayOfWeek];
+                await _orchestrator.EmailStoreDietPlanAsync(userId, dietPlan);
+            }
+            else
+            {
+                // Fallback to latest diet if day not found (or for current day resend)
+                var diet = await _storageRepository.GetLatestDietAsync(userId);
+                if (diet != null)
+                {
+                    await _orchestrator.EmailStoreDietPlanAsync(userId, diet);
+                }
+            }
+
             return RedirectToAction("Index", new { userId = userId });
         }
     }
