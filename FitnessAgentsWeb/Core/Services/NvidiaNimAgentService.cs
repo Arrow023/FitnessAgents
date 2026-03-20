@@ -6,6 +6,7 @@ using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.AI;
 using OpenAI;
 using System;
+using System.Linq;
 using Microsoft.Extensions.Logging;
 using System.ClientModel;
 using System.Threading.Tasks;
@@ -21,13 +22,29 @@ namespace FitnessAgentsWeb.Core.Services
         public async Task<string> GenerateWorkoutAsync(Models.UserHealthContext context)
         {
             IChatClient chatClient = GetChatClient();
-            string todayDate = GetAppNow().ToString("dddd, MMM dd, yyyy");
+            var now = GetAppNow();
+            string todayDate = now.ToString("dddd, MMM dd, yyyy");
+            string todayDay = now.ToString("dddd");
+
+            // Build today's scheduled focus from the user's weekly schedule
+            string todayScheduledFocus = context.WorkoutSchedule.TryGetValue(todayDay, out var focus) ? focus : "General Fitness";
+            string scheduleOverview = context.WorkoutSchedule.Any()
+                ? string.Join(" | ", context.WorkoutSchedule.Select(kvp => $"{kvp.Key}: {kvp.Value}"))
+                : "No weekly schedule set.";
 
             string prompt = $@"STRICT RESTRCTION: DO NOT include any reasoning, thought process, or preamble. Return ONLY the JSON object.
             
             You are an elite Strength & Conditioning Coach. 
             Create a professional training session for {context.FirstName}.
             TODAY'S DATE: {todayDate}
+
+            WEEKLY SCHEDULE (user-defined, MUST be followed):
+            {scheduleOverview}
+
+            TODAY'S SCHEDULED FOCUS: {todayScheduledFocus}
+            IMPORTANT: The workout MUST target ""{todayScheduledFocus}"" as defined in the user's weekly schedule.
+            If the schedule says Fasting, Active Recovery, or Rest Day, generate a light mobility/stretching session accordingly.
+            InBody focus areas below are secondary guidance — incorporate them only where they align with today's scheduled focus.
             
             USER PROFILE:
             Weight: {context.InBodyWeight}kg
@@ -35,7 +52,7 @@ namespace FitnessAgentsWeb.Core.Services
             Recent Activity: {context.ReadinessBrief}
             Weekly History: {context.WeeklyHistoryBrief}
             Preferences/Conditions: {context.ConditionsBrief}
-            InBody Analysis: {context.InBodyBrief}
+            InBody Analysis (secondary guidance): {context.InBodyBrief}
             
             JSON Schema:
             {{

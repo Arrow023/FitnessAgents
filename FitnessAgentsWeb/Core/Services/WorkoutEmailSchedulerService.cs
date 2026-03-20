@@ -79,8 +79,10 @@ namespace FitnessAgentsWeb.Core.Services
                     continue;
                 }
 
-                // Trigger if current time is at or past the scheduled time AND we haven't triggered today
-                if (currentTime >= scheduledTime && !_lastTriggeredDate.ContainsKey(userId))
+                // Trigger if current time is within 30 minutes past the scheduled time AND we haven't triggered today
+                // This prevents re-triggering stale schedules after an app restart (e.g., User alpha 08:00 firing at 16:00)
+                var minutesPastSchedule = (currentTime - scheduledTime).TotalMinutes;
+                if (minutesPastSchedule >= 0 && minutesPastSchedule <= 30 && !_lastTriggeredDate.ContainsKey(userId))
                 {
                     if (!_lastTriggeredDate.TryAdd(userId, todayIst))
                         continue; // Another thread already added it
