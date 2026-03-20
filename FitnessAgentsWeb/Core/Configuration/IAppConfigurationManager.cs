@@ -9,7 +9,7 @@ namespace FitnessAgentsWeb.Core.Configuration
             string aiModel, string aiEndpoint, string aiKey, 
             string ocrModel, string ocrEndpoint, string ocrKey,
             string smtpHost, string smtpPort, string fromEmail, string smtpPassword,
-            string timezone);
+            string timezone, string firebaseDatabaseSecret = "");
 
         Task<bool> IsAppConfiguredAsync();
         

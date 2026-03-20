@@ -1,0 +1,108 @@
+@model DietListViewModel
+@{
+    ViewData["Title"] = "Diet Plan";
+}
+
+<div class="page-header fade-up">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h1 class="page-title">Diet Plan</h1>
+            <p class="page-subtitle">AI-powered macro-optimized nutrition plans.</p>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <form method="post" asp-controller="Diet" asp-action="ResendEmail" style="margin: 0;">
+                <input type="hidden" name="userId" value="@Model.UserId" />
+                <button type="submit" class="btn btn-outline btn-sm">
+                    <i class="fa-solid fa-envelope"></i> Email Latest
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Today's Diet (Featured) -->
+@if (Model.LatestDiet is not null)
+{
+    <div class="card fade-up" style="margin-bottom: 1.75rem;">
+        <div class="card-header" style="margin-bottom: 1.25rem;">
+            <div>
+                <h3 class="card-title" style="font-size: 1.2rem;">Today's Nutrition Plan</h3>
+                <p class="card-subtitle"><i class="fa-solid fa-robot"></i> @Model.LatestDiet.AiSummary</p>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">@Model.LatestDiet.TotalCaloriesTarget</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">kcal target</div>
+            </div>
+        </div>
+
+        @{
+            var groupedMeals = Model.LatestDiet.Meals.GroupBy(m => m.MealType);
+        }
+        @foreach (var group in groupedMeals)
+        {
+            <div class="meal-group-label">@group.Key</div>
+            @foreach (var meal in group)
+            {
+                <div class="meal-row">
+                    <div>
+                        <span class="meal-row-name">@meal.FoodName</span>
+                        <span class="meal-row-qty">(@meal.QuantityDescription)</span>
+                    </div>
+                    <span class="meal-row-kcal">@meal.Calories kcal</span>
+                </div>
+            }
+        }
+    </div>
+}
+else
+{
+    <div class="empty-state fade-up" style="margin-bottom: 1.75rem;">
+        <div class="empty-state-icon"><i class="fa-solid fa-bowl-rice"></i></div>
+        <div class="empty-state-title">No diet plan for today</div>
+        <div class="empty-state-text">Generate a workout first — your AI nutritionist creates plans based on today's training.</div>
+    </div>
+}
+
+<!-- Diet History -->
+<h2 style="font-size: 1.25rem; font-weight: 700; color: var(--text); margin-bottom: 1rem;" class="fade-up">This Week's History</h2>
+
+@if (Model.DietHistory is not null && Model.DietHistory.PastDiets.Count > 0)
+{
+    <div class="grid-auto">
+        @{ var delay = 0; }
+        @foreach (var dayPlan in Model.DietHistory.PastDiets.OrderByDescending(x => x.Key))
+        {
+            delay++;
+            <a href="/Diet/Detail?userId=@Model.UserId&day=@dayPlan.Key" style="text-decoration: none;" class="fade-up stagger-@(Math.Min(delay, 4))">
+                <div class="diet-card">
+                    <div class="diet-card-header">
+                        <span class="diet-card-day">@dayPlan.Key</span>
+                        <span class="diet-card-kcal">@dayPlan.Value.TotalCaloriesTarget kcal</span>
+                    </div>
+                    <div class="diet-card-summary">@dayPlan.Value.AiSummary</div>
+                    <div style="display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.8rem;">
+                        @foreach (var m in dayPlan.Value.Meals.Take(3))
+                        {
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text);">@m.FoodName</span>
+                                <span style="color: var(--text-muted);">@m.Calories kcal</span>
+                            </div>
+                        }
+                        @if (dayPlan.Value.Meals.Count > 3)
+                        {
+                            <span style="color: var(--primary); font-size: 0.75rem;">+ @(dayPlan.Value.Meals.Count - 3) more items</span>
+                        }
+                    </div>
+                </div>
+            </a>
+        }
+    </div>
+}
+else
+{
+    <div class="empty-state fade-up">
+        <div class="empty-state-icon"><i class="fa-solid fa-calendar-xmark"></i></div>
+        <div class="empty-state-title">No diet history this week</div>
+        <div class="empty-state-text">Diet plans appear here after each AI workout generation.</div>
+    </div>
+}

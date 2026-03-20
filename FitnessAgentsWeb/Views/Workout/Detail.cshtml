@@ -1,0 +1,42 @@
+@model WorkoutDetailViewModel
+@{
+    ViewData["Title"] = $"{Model.DayOfWeek}'s Workout";
+}
+
+<div class="page-header fade-up">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h1 class="page-title">@Model.DayOfWeek's Plan</h1>
+            <p class="page-subtitle">AI-generated elite workout protocol.</p>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <form method="post" asp-controller="Workout" asp-action="ResendEmail" style="margin: 0;">
+                <input type="hidden" name="userId" value="@Model.UserId" />
+                <input type="hidden" name="dayOfWeek" value="@Model.DayOfWeek" />
+                <button type="submit" class="btn btn-outline btn-sm">
+                    <i class="fa-solid fa-envelope"></i> Resend Email
+                </button>
+            </form>
+            <a href="/Workout?userId=@Model.UserId" class="btn btn-sm btn-outline">
+                <i class="fa-solid fa-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card fade-up">
+    @if (!string.IsNullOrEmpty(Model.RenderedHtml))
+    {
+        <div class="plan-content">
+            @Html.Raw(Model.RenderedHtml)
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">
+            <div class="empty-state-icon"><i class="fa-solid fa-file-circle-question"></i></div>
+            <div class="empty-state-title">Plan Not Found</div>
+            <div class="empty-state-text">No workout data available for @Model.DayOfWeek.</div>
+        </div>
+    }
+</div>

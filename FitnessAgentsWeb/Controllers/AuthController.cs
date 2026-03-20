@@ -1,4 +1,5 @@
 using FitnessAgentsWeb.Core.Configuration;
+using FitnessAgentsWeb.Models.ViewModels;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -29,9 +30,9 @@ namespace FitnessAgentsWeb.Controllers
 
             if (User.Identity != null && User.Identity.IsAuthenticated)
             {
-                return RedirectToAction("Index", "Dashboard");
+                return RedirectToAction("Index", "Overview");
             }
-            return View();
+            return View(new LoginViewModel());
         }
 
         [HttpPost]
@@ -53,7 +54,7 @@ namespace FitnessAgentsWeb.Controllers
 
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                 await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
-                return RedirectToAction("Index", "Dashboard");
+                return RedirectToAction("Index", "Overview");
             }
 
             // 2. Check if this is a Standard User Login
@@ -70,12 +71,11 @@ namespace FitnessAgentsWeb.Controllers
 
                     var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                     await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
-                    return RedirectToAction("Index", "Dashboard", new { userId = username });
+                    return RedirectToAction("Index", "Overview", new { userId = username });
                 }
             }
 
-            ViewBag.Error = "Invalid credentials or account disabled.";
-            return View();
+            return View(new LoginViewModel { ErrorMessage = "Invalid credentials or account disabled." });
         }
 
         [HttpPost]

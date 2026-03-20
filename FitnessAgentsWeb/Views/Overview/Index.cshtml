@@ -1,0 +1,776 @@
+@model OverviewViewModel
+@{
+    ViewData["Title"] = "Overview";
+}
+
+<div class="page-header fade-up">
+    <h1 class="page-title">Welcome back, @Model.Context.FirstName!</h1>
+    <p class="page-subtitle">Your physiological profile and readiness for today.</p>
+</div>
+
+<!-- Conditions / Injuries Banner -->
+@if (Model.Context.ConditionsBrief != "No reported pain or injuries.")
+{
+    <div class="info-banner info-banner--warn fade-up" style="margin-bottom: 1.25rem;">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <div><strong>Active Conditions:</strong> @Model.Context.ConditionsBrief</div>
+    </div>
+}
+
+<!-- Stat Cards (6 cards) -->
+<div class="stats-grid" style="margin-bottom: 1.75rem;">
+    <div class="stat-card stat-card-green fade-up stagger-1">
+        <div class="stat-card-label"><i class="fa-solid fa-shoe-prints"></i> Steps</div>
+        <div class="stat-card-value">@Model.Context.VitalsSteps</div>
+        <div class="stat-card-hint">Today's Activity</div>
+    </div>
+    <div class="stat-card stat-card-orange fade-up stagger-2">
+        <div class="stat-card-label"><i class="fa-solid fa-moon"></i> Sleep</div>
+        <div class="stat-card-value">@Model.Context.VitalsSleepTotal</div>
+        <div class="stat-card-hint">Deep: @Model.Context.VitalsSleepDeep &middot; Eff: @Model.Context.SleepEfficiency%</div>
+    </div>
+    <div class="stat-card stat-card-red fade-up stagger-3">
+        <div class="stat-card-label"><i class="fa-solid fa-fire-flame-curved"></i> Calories</div>
+        <div class="stat-card-value">@Model.Context.VitalsCalories</div>
+        <div class="stat-card-hint">Total: @Model.Context.VitalsTotalCalories</div>
+    </div>
+    <div class="stat-card stat-card-purple fade-up stagger-4">
+        <div class="stat-card-label"><i class="fa-solid fa-heart-pulse"></i> Heart Rate</div>
+        <div class="stat-card-value">@Model.Context.VitalsRhr bpm</div>
+        <div class="stat-card-hint">HRV: @Model.Context.VitalsHrv ms</div>
+    </div>
+    <div class="stat-card stat-card-blue fade-up stagger-5">
+        <div class="stat-card-label"><i class="fa-solid fa-route"></i> Distance</div>
+        <div class="stat-card-value">@Model.Context.VitalsDistance</div>
+        <div class="stat-card-hint">Today's movement</div>
+    </div>
+    <div class="stat-card stat-card-teal fade-up stagger-6">
+        <div class="stat-card-label"><i class="fa-solid fa-gauge-high"></i> Recovery</div>
+        <div class="stat-card-value">@Model.Context.RecoveryScore<span style="font-size:0.85rem; opacity:0.75;">/100</span></div>
+        <div class="stat-card-hint">Composite readiness</div>
+    </div>
+</div>
+
+<!-- Recovery + Readiness Row -->
+<div class="grid-2 fade-up" style="margin-bottom: 1.75rem;">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Recovery Score</h3>
+            <span style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.04em;">
+                @(Model.Context.RecoveryScore >= 70 ? "Good to go" : Model.Context.RecoveryScore >= 40 ? "Moderate" : "Rest advised")
+            </span>
+        </div>
+        <div class="recovery-ring-wrap">
+            <div class="recovery-ring">
+                <svg width="120" height="120" viewBox="0 0 120 120">
+                    <circle class="recovery-ring-bg" cx="60" cy="60" r="52" />
+                    <circle class="recovery-ring-fill" cx="60" cy="60" r="52"
+                            stroke="@(Model.Context.RecoveryScore >= 70 ? "#10b981" : Model.Context.RecoveryScore >= 40 ? "#f97316" : "#ef4444")"
+                            stroke-dasharray="@(Math.Round(326.7 * Model.Context.RecoveryScore / 100.0, 1)) 326.7" />
+                </svg>
+                <div class="recovery-ring-label">
+                    <span class="recovery-ring-value">@Model.Context.RecoveryScore</span>
+                    <span class="recovery-ring-text">Score</span>
+                </div>
+            </div>
+            <div class="recovery-details">
+                <div class="recovery-detail-item">
+                    <span><i class="fa-solid fa-heart-pulse" style="margin-right:0.3rem;color:var(--accent-red);"></i> RHR</span>
+                    <span>@Model.Context.VitalsRhr bpm</span>
+                </div>
+                <div class="recovery-detail-item">
+                    <span><i class="fa-solid fa-wave-square" style="margin-right:0.3rem;color:var(--accent-purple);"></i> HRV</span>
+                    <span>@Model.Context.VitalsHrv ms</span>
+                </div>
+                <div class="recovery-detail-item">
+                    <span><i class="fa-solid fa-moon" style="margin-right:0.3rem;color:var(--accent-orange);"></i> Sleep Eff.</span>
+                    <span>@Model.Context.SleepEfficiency%</span>
+                </div>
+                <div class="recovery-detail-item">
+                    <span><i class="fa-solid fa-lungs" style="margin-right:0.3rem;color:var(--accent-blue);"></i> SpO2</span>
+                    <span>@(Model.Context.VitalsSpO2 != "--" ? Model.Context.VitalsSpO2 + "%" : "N/A")</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fa-solid fa-robot" style="margin-right:0.4rem; color:var(--primary);"></i> AI Readiness Brief</h3>
+            <span class="readiness-date-tag">
+                <i class="fa-solid fa-calendar-day"></i> @DateTime.Now.ToString("MMM dd")
+            </span>
+        </div>
+
+        <!-- Score Rings Row -->
+        <div class="readiness-scores">
+            @{
+                var scores = new[] {
+                    ("Recovery", Model.Context.RecoveryScore, "#10b981", "fa-shield-heart"),
+                    ("Sleep", Model.Context.SleepScore, "#8b5cf6", "fa-moon"),
+                    ("Active", Model.Context.ActiveScore, "#f97316", "fa-bolt")
+                };
+            }
+            @foreach (var (label, score, color, icon) in scores)
+            {
+                var circumference = 2 * Math.PI * 28;
+                var offset = circumference - (circumference * score / 100.0);
+                <div class="readiness-score-ring">
+                    <svg width="72" height="72" viewBox="0 0 72 72">
+                        <circle cx="36" cy="36" r="28" fill="none" stroke="var(--border)" stroke-width="5" />
+                        <circle cx="36" cy="36" r="28" fill="none" stroke="@color" stroke-width="5"
+                                stroke-dasharray="@circumference.ToString("0.0")" stroke-dashoffset="@offset.ToString("0.0")"
+                                stroke-linecap="round" transform="rotate(-90 36 36)" />
+                    </svg>
+                    <div class="readiness-score-inner">
+                        <span class="readiness-score-value">@score</span>
+                    </div>
+                    <span class="readiness-score-label"><i class="fa-solid @icon" style="color:@color; margin-right:0.2rem;"></i>@label</span>
+                </div>
+            }
+        </div>
+
+        <!-- Vitals Metric Grid -->
+        <div class="readiness-vitals-grid">
+            <div class="readiness-vital">
+                <span class="readiness-vital-icon" style="color:var(--accent-red);"><i class="fa-solid fa-heart-pulse"></i></span>
+                <span class="readiness-vital-val">@Model.Context.VitalsRhr</span>
+                <span class="readiness-vital-unit">bpm RHR</span>
+            </div>
+            <div class="readiness-vital">
+                <span class="readiness-vital-icon" style="color:var(--accent-purple);"><i class="fa-solid fa-wave-square"></i></span>
+                <span class="readiness-vital-val">@Model.Context.VitalsHrv</span>
+                <span class="readiness-vital-unit">ms HRV</span>
+            </div>
+            <div class="readiness-vital">
+                <span class="readiness-vital-icon" style="color:var(--accent-green);"><i class="fa-solid fa-shoe-prints"></i></span>
+                <span class="readiness-vital-val">@Model.Context.VitalsSteps</span>
+                <span class="readiness-vital-unit">steps</span>
+            </div>
+            <div class="readiness-vital">
+                <span class="readiness-vital-icon" style="color:var(--accent-orange);"><i class="fa-solid fa-moon"></i></span>
+                <span class="readiness-vital-val">@Model.Context.VitalsSleepTotal</span>
+                <span class="readiness-vital-unit">sleep</span>
+            </div>
+            <div class="readiness-vital">
+                <span class="readiness-vital-icon" style="color:var(--accent-blue);"><i class="fa-solid fa-lungs"></i></span>
+                <span class="readiness-vital-val">@(Model.Context.VitalsVo2Max != "--" ? Model.Context.VitalsVo2Max : "N/A")</span>
+                <span class="readiness-vital-unit">VO2max</span>
+            </div>
+            <div class="readiness-vital">
+                <span class="readiness-vital-icon" style="color:var(--accent-red);"><i class="fa-solid fa-fire-flame-curved"></i></span>
+                <span class="readiness-vital-val">@Model.Context.VitalsCalories</span>
+                <span class="readiness-vital-unit">burned</span>
+            </div>
+        </div>
+
+        <!-- 15-Day Averages Strip -->
+        @if (Model.Context.AvgRhr15Day != "--" || Model.Context.AvgHrv15Day != "--" || Model.Context.AvgSteps15Day != "--" || Model.Context.AvgSleep15Day != "--")
+        {
+            <div class="readiness-averages">
+                <span class="readiness-avg-label"><i class="fa-solid fa-chart-line"></i> 15-Day Avg</span>
+                <div class="readiness-avg-pills">
+                    @if (Model.Context.AvgRhr15Day != "--") { <span class="readiness-avg-pill">RHR <strong>@Model.Context.AvgRhr15Day</strong></span> }
+                    @if (Model.Context.AvgHrv15Day != "--") { <span class="readiness-avg-pill">HRV <strong>@Model.Context.AvgHrv15Day</strong></span> }
+                    @if (Model.Context.AvgSteps15Day != "--") { <span class="readiness-avg-pill">Steps <strong>@Model.Context.AvgSteps15Day</strong></span> }
+                    @if (Model.Context.AvgSleep15Day != "--") { <span class="readiness-avg-pill">Sleep <strong>@Model.Context.AvgSleep15Day</strong></span> }
+                </div>
+            </div>
+        }
+
+        @if (Model.Context.WeeklyHistoryBrief != "No workouts recorded yet this week." && Model.Context.WeeklyHistoryBrief != "It's the start of a new week. No workouts completed yet.")
+        {
+            <div style="padding: 0 1.5rem 1.25rem;">
+                <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); margin-bottom:0.5rem;">
+                    <i class="fa-solid fa-calendar-check" style="margin-right:0.3rem;"></i> This Week
+                </div>
+                <div style="font-size:0.82rem; color:var(--text-secondary); white-space:pre-line; line-height:1.6;">@Model.Context.WeeklyHistoryBrief</div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="grid-2 fade-up" style="margin-bottom: 1.75rem;">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Sleep Stages</h3>
+        </div>
+        <div style="height: 260px;">
+            <canvas id="sleepChart"></canvas>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Body Composition</h3>
+        </div>
+        <div style="display:flex; align-items:center; gap:1.5rem; padding: 0 0.5rem;">
+            <div style="position:relative; flex:0 0 160px; height:160px;">
+                <canvas id="bodyCompChart" style="width:160px!important; height:160px!important;"></canvas>
+                <div class="body-comp-center">
+                    <span class="body-comp-center-val">@Model.Context.InBodyWeight</span>
+                    <span class="body-comp-center-unit">kg</span>
+                </div>
+            </div>
+            <div class="body-comp-legend">
+                <div class="body-comp-legend-row">
+                    <span class="body-comp-legend-dot" style="background:#14b8a6;"></span>
+                    <span class="body-comp-legend-label">Skeletal Muscle</span>
+                    <span class="body-comp-legend-val" id="bcompSmm">--</span>
+                </div>
+                <div class="body-comp-legend-row">
+                    <span class="body-comp-legend-dot" style="background:#f97316;"></span>
+                    <span class="body-comp-legend-label">Body Fat</span>
+                    <span class="body-comp-legend-val" id="bcompFat">--</span>
+                </div>
+                <div class="body-comp-legend-row">
+                    <span class="body-comp-legend-dot" style="background:#64748b;"></span>
+                    <span class="body-comp-legend-label">Other</span>
+                    <span class="body-comp-legend-val" id="bcompOther">--</span>
+                </div>
+                <div class="body-comp-summary">
+                    <span>BF% <strong>@Model.Context.InBodyBf</strong></span>
+                    <span>SMM <strong>@Model.Context.InBodySmm kg</strong></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 7-Day Trends Row (SVG sparklines) -->
+@{
+    string[] dayLabels = ["6d", "5d", "4d", "3d", "2d", "1d", "Today"];
+    
+    // Parse trend data
+    var rhrData = System.Text.Json.JsonSerializer.Deserialize<List<int>>(Model.Context.RhrTrend) ?? new();
+    var hrvData = System.Text.Json.JsonSerializer.Deserialize<List<int>>(Model.Context.HrvTrend) ?? new();
+    var stepsData = System.Text.Json.JsonSerializer.Deserialize<List<int>>(Model.Context.StepsTrend) ?? new();
+    var sleepData = System.Text.Json.JsonSerializer.Deserialize<List<double>>(Model.Context.SleepTrend) ?? new();
+}
+
+<div class="grid-2 fade-up" style="margin-bottom: 1.75rem;">
+    <!-- RHR Trend -->
+    <div class="card sparkline-card">
+        <div class="sparkline-header">
+            <span class="sparkline-title"><i class="fa-solid fa-heart-pulse" style="color:#ef4444; margin-right:0.3rem;"></i> 7-Day RHR</span>
+            <span class="sparkline-current">@Model.Context.VitalsRhr <span style="font-size:0.72rem;color:var(--text-muted);">bpm</span></span>
+        </div>
+        @{ var rhrMax = rhrData.Any(v => v > 0) ? rhrData.Where(v => v > 0).Max() : 1; var rhrMin = rhrData.Any(v => v > 0) ? rhrData.Where(v => v > 0).Min() : 0; }
+        <div class="svg-spark-wrap">
+            @for (int i = 0; i < rhrData.Count && i < 7; i++)
+            {
+                var val = rhrData[i];
+                var pct = rhrMax > rhrMin ? (double)(val - rhrMin) / (rhrMax - rhrMin) * 70 + 25 : (val > 0 ? 60 : 0);
+                var isToday = i == rhrData.Count - 1;
+                <div class="svg-spark-col" title="@dayLabels[i]: @val bpm">
+                    <div class="svg-spark-bar @(isToday ? "svg-spark-bar--active" : "")" style="height:@(val > 0 ? pct.ToString("0") : "0")%;background:@(isToday ? "#ef4444" : "rgba(239,68,68,0.35)");"></div>
+                    <span class="svg-spark-label">@(val > 0 ? val.ToString() : "")</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- HRV Trend -->
+    <div class="card sparkline-card">
+        <div class="sparkline-header">
+            <span class="sparkline-title"><i class="fa-solid fa-wave-square" style="color:#8b5cf6; margin-right:0.3rem;"></i> 7-Day HRV</span>
+            <span class="sparkline-current">@Model.Context.VitalsHrv <span style="font-size:0.72rem;color:var(--text-muted);">ms</span></span>
+        </div>
+        @{ var hrvMax = hrvData.Any(v => v > 0) ? hrvData.Where(v => v > 0).Max() : 1; var hrvMin = hrvData.Any(v => v > 0) ? hrvData.Where(v => v > 0).Min() : 0; }
+        <div class="svg-spark-wrap">
+            @for (int i = 0; i < hrvData.Count && i < 7; i++)
+            {
+                var val = hrvData[i];
+                var pct = hrvMax > hrvMin ? (double)(val - hrvMin) / (hrvMax - hrvMin) * 70 + 25 : (val > 0 ? 60 : 0);
+                var isToday = i == hrvData.Count - 1;
+                <div class="svg-spark-col" title="@dayLabels[i]: @val ms">
+                    <div class="svg-spark-bar @(isToday ? "svg-spark-bar--active" : "")" style="height:@(val > 0 ? pct.ToString("0") : "0")%;background:@(isToday ? "#8b5cf6" : "rgba(139,92,246,0.35)");"></div>
+                    <span class="svg-spark-label">@(val > 0 ? val.ToString() : "")</span>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="grid-2 fade-up" style="margin-bottom: 1.75rem;">
+    <!-- Steps Trend -->
+    <div class="card sparkline-card">
+        <div class="sparkline-header">
+            <span class="sparkline-title"><i class="fa-solid fa-shoe-prints" style="color:#10b981; margin-right:0.3rem;"></i> 7-Day Steps</span>
+            <span class="sparkline-current">@Model.Context.VitalsSteps</span>
+        </div>
+        @{ var stepsMax = stepsData.Any(v => v > 0) ? stepsData.Where(v => v > 0).Max() : 1; }
+        <div class="svg-spark-wrap">
+            @for (int i = 0; i < stepsData.Count && i < 7; i++)
+            {
+                var val = stepsData[i];
+                var pct = stepsMax > 0 ? (double)val / stepsMax * 90 + 5 : 0;
+                if (val == 0) pct = 0;
+                var isToday = i == stepsData.Count - 1;
+                <div class="svg-spark-col" title="@dayLabels[i]: @val.ToString("N0") steps">
+                    <div class="svg-spark-bar @(isToday ? "svg-spark-bar--active" : "")" style="height:@(val > 0 ? pct.ToString("0") : "0")%;background:@(isToday ? "#10b981" : "rgba(16,185,129,0.35)");"></div>
+                    <span class="svg-spark-label">@(val > 0 ? (val >= 1000 ? (val / 1000.0).ToString("0.#") + "k" : val.ToString()) : "")</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Sleep Trend -->
+    <div class="card sparkline-card">
+        <div class="sparkline-header">
+            <span class="sparkline-title"><i class="fa-solid fa-moon" style="color:#f97316; margin-right:0.3rem;"></i> 7-Day Sleep</span>
+            <span class="sparkline-current">@Model.Context.VitalsSleepTotal</span>
+        </div>
+        @{ var sleepMax = sleepData.Any(v => v > 0) ? sleepData.Where(v => v > 0).Max() : 1; }
+        <div class="svg-spark-wrap">
+            @for (int i = 0; i < sleepData.Count && i < 7; i++)
+            {
+                var val = sleepData[i];
+                var pct = sleepMax > 0 ? val / sleepMax * 90 + 5 : 0;
+                if (val == 0) pct = 0;
+                var isToday = i == sleepData.Count - 1;
+                <div class="svg-spark-col" title="@dayLabels[i]: @val.ToString("0.0")h">
+                    <div class="svg-spark-bar @(isToday ? "svg-spark-bar--active" : "")" style="height:@(val > 0 ? pct.ToString("0") : "0")%;background:@(isToday ? "#f97316" : "rgba(249,115,22,0.35)");"></div>
+                    <span class="svg-spark-label">@(val > 0 ? val.ToString("0.#") + "h" : "")</span>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Expanded Vitals (conditional - only if data exists) -->
+@{
+    bool hasBp = Model.Context.VitalsBloodPressure != "--/--";
+    bool hasSpO2 = Model.Context.VitalsSpO2 != "--";
+    bool hasResp = Model.Context.VitalsRespiratoryRate != "--";
+    bool hasHydration = double.TryParse(Model.Context.VitalsHydration, out double hydrationVal) && hydrationVal > 0;
+    bool hasExpandedVitals = hasBp || hasSpO2 || hasResp || hasHydration;
+}
+@if (hasExpandedVitals)
+{
+    <div class="card fade-up" style="margin-bottom: 1.75rem;">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fa-solid fa-stethoscope" style="margin-right:0.4rem; color:var(--accent-blue);"></i> Additional Vitals</h3>
+        </div>
+        <div class="vitals-mini-grid">
+            @if (hasBp)
+            {
+                <div class="vital-mini">
+                    <div class="vital-mini-icon vital-mini-icon--red"><i class="fa-solid fa-heart-circle-bolt"></i></div>
+                    <div class="vital-mini-info">
+                        <span class="vital-mini-value">@Model.Context.VitalsBloodPressure</span>
+                        <span class="vital-mini-label">Blood Pressure (mmHg)</span>
+                    </div>
+                </div>
+            }
+            @if (hasSpO2)
+            {
+                <div class="vital-mini">
+                    <div class="vital-mini-icon vital-mini-icon--blue"><i class="fa-solid fa-lungs"></i></div>
+                    <div class="vital-mini-info">
+                        <span class="vital-mini-value">@Model.Context.VitalsSpO2%</span>
+                        <span class="vital-mini-label">Oxygen Saturation</span>
+                    </div>
+                </div>
+            }
+            @if (hasResp)
+            {
+                <div class="vital-mini">
+                    <div class="vital-mini-icon vital-mini-icon--teal"><i class="fa-solid fa-wind"></i></div>
+                    <div class="vital-mini-info">
+                        <span class="vital-mini-value">@Model.Context.VitalsRespiratoryRate</span>
+                        <span class="vital-mini-label">Respiratory Rate (bpm)</span>
+                    </div>
+                </div>
+            }
+            @if (hasHydration)
+            {
+                <div class="vital-mini">
+                    <div class="vital-mini-icon vital-mini-icon--blue"><i class="fa-solid fa-glass-water-droplet"></i></div>
+                    <div class="vital-mini-info">
+                        <span class="vital-mini-value">@Model.Context.VitalsHydration L</span>
+                        <span class="vital-mini-label">Hydration</span>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+<!-- Nutrition & Calorie Balance (conditional) -->
+@{
+    bool hasNutrition = double.TryParse(Model.Context.VitalsNutritionCalories?.Replace(",", ""), out double nutCals) && nutCals > 0;
+}
+@if (hasNutrition)
+{
+    <div class="grid-2 fade-up" style="margin-bottom: 1.75rem;">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fa-solid fa-utensils" style="margin-right:0.4rem; color:var(--accent-green);"></i> Nutrition Intake</h3>
+                <span style="font-size:0.85rem; font-weight:700; color:var(--text);">@Model.Context.VitalsNutritionCalories kcal</span>
+            </div>
+            <div class="macros-bar-wrap">
+                @{
+                    double protein = double.TryParse(Model.Context.VitalsProtein, out var p) ? p : 0;
+                    double carbs = double.TryParse(Model.Context.VitalsCarbs, out var c) ? c : 0;
+                    double fat = double.TryParse(Model.Context.VitalsFat, out var f) ? f : 0;
+                    double macroTotal = protein + carbs + fat;
+                    double pPct = macroTotal > 0 ? protein / macroTotal * 100 : 33;
+                    double cPct = macroTotal > 0 ? carbs / macroTotal * 100 : 34;
+                    double fPct = macroTotal > 0 ? fat / macroTotal * 100 : 33;
+                }
+                <div class="macros-bar">
+                    <span style="width:@(pPct.ToString("0.0"))%; background:#10b981;"></span>
+                    <span style="width:@(cPct.ToString("0.0"))%; background:#3b82f6;"></span>
+                    <span style="width:@(fPct.ToString("0.0"))%; background:#f97316;"></span>
+                </div>
+                <div class="macros-legend">
+                    <div class="macros-legend-item">
+                        <span class="macros-legend-dot" style="background:#10b981;"></span>
+                        Protein <strong>@Model.Context.VitalsProtein g</strong>
+                    </div>
+                    <div class="macros-legend-item">
+                        <span class="macros-legend-dot" style="background:#3b82f6;"></span>
+                        Carbs <strong>@Model.Context.VitalsCarbs g</strong>
+                    </div>
+                    <div class="macros-legend-item">
+                        <span class="macros-legend-dot" style="background:#f97316;"></span>
+                        Fat <strong>@Model.Context.VitalsFat g</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fa-solid fa-scale-balanced" style="margin-right:0.4rem; color:var(--accent-orange);"></i> Calorie Balance</h3>
+            </div>
+            <div style="padding: 1.5rem; text-align: center;">
+                <div style="font-size: 2.5rem; font-weight: 800; color: var(--text); line-height: 1;">
+                    @Model.Context.CalorieBalance
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">kcal (intake − expenditure)</div>
+                <div style="display: flex; justify-content: center; gap: 2rem; margin-top: 1.25rem;">
+                    <div>
+                        <div style="font-size: 1.1rem; font-weight: 700; color: var(--accent-green);">@Model.Context.VitalsNutritionCalories</div>
+                        <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Intake</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 1.1rem; font-weight: 700; color: var(--accent-red);">@Model.Context.VitalsTotalCalories</div>
+                        <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Burned</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Exercise Log (conditional) -->
+@{
+    bool hasExercise = Model.Context.ExerciseLog != "[]";
+}
+@if (hasExercise)
+{
+    <div class="card fade-up" style="margin-bottom: 1.75rem;">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fa-solid fa-person-running" style="margin-right:0.4rem; color:var(--accent-green);"></i> Today's Exercise</h3>
+            <span style="font-size: 0.78rem; font-weight: 700; color: var(--primary);">
+                @Model.Context.ActiveMinutesWeekly min this week
+            </span>
+        </div>
+        <div style="padding: 0 1.5rem 1.25rem;">
+            <div class="exercise-cards-grid" id="exerciseList"></div>
+        </div>
+    </div>
+}
+
+<!-- InBody Summary Row -->
+@if (Model.InBody is not null)
+{
+    <div class="inbody-card fade-up" style="margin-bottom: 1.75rem;">
+        <div class="inbody-header">
+            <div class="inbody-header-left">
+                <div class="inbody-icon-wrap">
+                    <i class="fa-solid fa-person-rays"></i>
+                </div>
+                <div>
+                    <h3 class="inbody-title">InBody Analysis</h3>
+                    <p class="inbody-subtitle">Body composition breakdown</p>
+                </div>
+            </div>
+            <span class="inbody-badge">
+                @if (Model.Context.InBodyScanDate != "--")
+                {
+                    <text>Scan: @Model.Context.InBodyScanDate</text>
+                }
+                else
+                {
+                    <text>Latest Scan</text>
+                }
+            </span>
+        </div>
+        <div class="inbody-metrics-grid">
+            <div class="inbody-metric inbody-metric--teal">
+                <div class="inbody-metric-icon"><i class="fa-solid fa-weight-scale"></i></div>
+                <div class="inbody-metric-value">@Model.Context.InBodyWeight<span class="inbody-metric-unit">kg</span></div>
+                <div class="inbody-metric-label">Weight</div>
+            </div>
+            <div class="inbody-metric inbody-metric--orange">
+                <div class="inbody-metric-icon"><i class="fa-solid fa-droplet"></i></div>
+                <div class="inbody-metric-value">@Model.Context.InBodyBf<span class="inbody-metric-unit">%</span></div>
+                <div class="inbody-metric-label">Body Fat</div>
+            </div>
+            <div class="inbody-metric inbody-metric--blue">
+                <div class="inbody-metric-icon"><i class="fa-solid fa-dumbbell"></i></div>
+                <div class="inbody-metric-value">@Model.Context.InBodySmm<span class="inbody-metric-unit">kg</span></div>
+                <div class="inbody-metric-label">SMM</div>
+            </div>
+            <div class="inbody-metric inbody-metric--green">
+                <div class="inbody-metric-icon"><i class="fa-solid fa-bolt"></i></div>
+                <div class="inbody-metric-value">@Model.Context.InBodyBmr<span class="inbody-metric-unit">kcal</span></div>
+                <div class="inbody-metric-label">BMR</div>
+            </div>
+            <div class="inbody-metric inbody-metric--red">
+                <div class="inbody-metric-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <div class="inbody-metric-value">@Model.Context.InBodyVisceral</div>
+                <div class="inbody-metric-label">Visceral Fat</div>
+            </div>
+        </div>
+
+        <!-- BMI + Targets Row -->
+        <div class="inbody-targets">
+            <div class="inbody-target-bar">
+                <div class="inbody-target-header">
+                    <span class="inbody-target-label">BMI</span>
+                    <span class="inbody-target-value" style="color: var(--text);">@Model.Context.InBodyBmi</span>
+                </div>
+                <div class="inbody-target-track">
+                    @{
+                        double bmiVal = double.TryParse(Model.Context.InBodyBmi, out var b) ? b : 22;
+                        double bmiPct = Math.Clamp((bmiVal - 15) / 25 * 100, 5, 100);
+                        string bmiColor = bmiVal < 18.5 ? "#3b82f6" : bmiVal < 25 ? "#10b981" : bmiVal < 30 ? "#f97316" : "#ef4444";
+                    }
+                    <div class="inbody-target-fill" style="width:@(bmiPct.ToString("0"))%; background:@bmiColor;"></div>
+                </div>
+            </div>
+            <div class="inbody-target-bar">
+                <div class="inbody-target-header">
+                    <span class="inbody-target-label">Active Min/Week</span>
+                    <span class="inbody-target-value" style="color: var(--primary);">@Model.Context.ActiveMinutesWeekly / 150</span>
+                </div>
+                <div class="inbody-target-track">
+                    @{
+                        double activeMin = double.TryParse(Model.Context.ActiveMinutesWeekly, out var am) ? am : 0;
+                        double activePct = Math.Clamp(activeMin / 150 * 100, 0, 100);
+                    }
+                    <div class="inbody-target-fill inbody-target-fill--muscle" style="width:@(activePct.ToString("0"))%;"></div>
+                </div>
+            </div>
+        </div>
+
+        @{
+            double fatCtrl = double.TryParse(Model.Context.InBodyFatControl, out var fc) ? fc : 0;
+            double muscleCtrl = double.TryParse(Model.Context.InBodyMuscleControl, out var mc) ? mc : 0;
+            bool hasTargets = fatCtrl != 0 || muscleCtrl != 0;
+        }
+        @if (hasTargets)
+        {
+            <div class="inbody-targets">
+                <div class="inbody-target-bar">
+                    <div class="inbody-target-header">
+                        <span class="inbody-target-label">Fat Control</span>
+                        <span class="inbody-target-value" style="color: var(--accent-orange);">@Model.Context.InBodyFatControl kg</span>
+                    </div>
+                    <div class="inbody-target-track">
+                        <div class="inbody-target-fill inbody-target-fill--fat" style="width:@(Math.Clamp(Math.Abs(fatCtrl) / 10 * 100, 10, 100).ToString("0"))%;"></div>
+                    </div>
+                </div>
+                <div class="inbody-target-bar">
+                    <div class="inbody-target-header">
+                        <span class="inbody-target-label">Muscle Control</span>
+                        <span class="inbody-target-value" style="color: var(--primary);">+@Model.Context.InBodyMuscleControl kg</span>
+                    </div>
+                    <div class="inbody-target-track">
+                        <div class="inbody-target-fill inbody-target-fill--muscle" style="width:@(Math.Clamp(Math.Abs(muscleCtrl) / 10 * 100, 10, 100).ToString("0"))%;"></div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="inbody-focus">
+            <div class="inbody-focus-label"><i class="fa-solid fa-crosshairs"></i> Focus Areas</div>
+            <div class="inbody-focus-tags">
+                @foreach (var area in Model.Context.InBodyImbalances?.Split(',', System.StringSplitOptions.TrimEntries | System.StringSplitOptions.RemoveEmptyEntries) ?? [])
+                {
+                    <span class="inbody-focus-tag">@area.Trim()</span>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Quick Links -->
+<div class="grid-3 fade-up" style="margin-bottom: 1rem;">
+    <a href="/Workout" class="card card-hover" style="text-decoration: none; text-align: center; padding: 2rem;">
+        <i class="fa-solid fa-dumbbell" style="font-size: 2rem; color: var(--primary); margin-bottom: 0.75rem;"></i>
+        <h3 class="card-title">Workout Plans</h3>
+        <p class="card-subtitle">View this week's AI-generated workouts</p>
+    </a>
+    <a href="/Diet" class="card card-hover" style="text-decoration: none; text-align: center; padding: 2rem;">
+        <i class="fa-solid fa-utensils" style="font-size: 2rem; color: var(--accent-orange); margin-bottom: 0.75rem;"></i>
+        <h3 class="card-title">Diet Plan</h3>
+        <p class="card-subtitle">Today's macro-optimized nutrition</p>
+    </a>
+    <a href="/Profile" class="card card-hover" style="text-decoration: none; text-align: center; padding: 2rem;">
+        <i class="fa-solid fa-sliders" style="font-size: 2rem; color: var(--accent-purple); margin-bottom: 0.75rem;"></i>
+        <h3 class="card-title">Preferences</h3>
+        <p class="card-subtitle">Customize your AI coaching profile</p>
+    </a>
+</div>
+
+<!-- Data Timestamp -->
+<div class="data-timestamp fade-up">
+    <i class="fa-solid fa-clock"></i> Last synced: @Model.Context.DataTimestamp
+</div>
+
+@section Scripts {
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    var gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+    var textColor = isDark ? '#94a3b8' : '#64748b';
+
+    Chart.defaults.color = textColor;
+    Chart.defaults.borderColor = gridColor;
+
+    // ── Sleep chart ──
+    var sleepCtx = document.getElementById('sleepChart');
+    if (sleepCtx) {
+        var labels = [], data = [];
+        @if (Model.HealthData?.Sleep is not null)
+        {
+            var istZone = TimeZoneInfo.FindSystemTimeZoneById("India Standard Time");
+            var nowIst = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, istZone).Date;
+            var windowStart = nowIst.AddHours(-12);
+            var windowEnd = nowIst.AddHours(12);
+
+            var stages = Model.HealthData.Sleep
+                .SelectMany(s => s.Stages)
+                .Where(st => {
+                    var stIst = TimeZoneInfo.ConvertTimeFromUtc(st.StartTime, istZone);
+                    return stIst >= windowStart && stIst < windowEnd;
+                })
+                .OrderBy(st => st.StartTime)
+                .ToList();
+
+            foreach (var stage in stages)
+            {
+                var istTime = TimeZoneInfo.ConvertTimeFromUtc(stage.StartTime, istZone);
+                <text>labels.push('@istTime.ToString("HH:mm")'); </text>
+                var mapped = stage.Stage switch { "1" => 4, "6" => 3, "4" => 2, "5" => 1, _ => 2 };
+                <text>data.push(@mapped); </text>
+            }
+        }
+
+        if (data.length === 0) {
+            labels = ['22:00','23:00','00:00','02:00','04:00','06:00'];
+            data = [4, 2, 1, 3, 2, 4];
+        }
+
+        new Chart(sleepCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Sleep Stage',
+                    data: data,
+                    borderColor: '#8b5cf6',
+                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                    borderWidth: 2.5,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#8b5cf6'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        ticks: { callback: v => ['','Deep','Light','REM','Wake'][v] || '', stepSize: 1 },
+                        min: 0, max: 5,
+                        grid: { color: gridColor }
+                    },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    // ── Body Composition doughnut ──
+    var bodyCtx = document.getElementById('bodyCompChart');
+    if (bodyCtx) {
+        var weight = parseFloat('@Model.Context.InBodyWeight') || 70;
+        var smm = parseFloat('@Model.Context.InBodySmm') || 30;
+        var bf = parseFloat('@Model.Context.InBodyBf') || 20;
+        var bfKg = weight * (bf / 100);
+        var other = Math.max(0, weight - smm - bfKg);
+
+        // Populate legend values
+        var smmEl = document.getElementById('bcompSmm');
+        var fatEl = document.getElementById('bcompFat');
+        var otherEl = document.getElementById('bcompOther');
+        if (smmEl) smmEl.textContent = smm.toFixed(1) + ' kg';
+        if (fatEl) fatEl.textContent = bfKg.toFixed(1) + ' kg';
+        if (otherEl) otherEl.textContent = other.toFixed(1) + ' kg';
+
+        new Chart(bodyCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Skeletal Muscle', 'Body Fat', 'Other'],
+                datasets: [{
+                    data: [smm.toFixed(1), bfKg.toFixed(1), other.toFixed(1)],
+                    backgroundColor: ['#14b8a6', '#f97316', '#64748b'],
+                    borderWidth: 0,
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '68%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                return ctx.label + ': ' + ctx.parsed + ' kg (' + (ctx.parsed / weight * 100).toFixed(0) + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ── Exercise cards rendering ──
+    var exerciseData = @Html.Raw(Model.Context.ExerciseLog);
+    var grid = document.getElementById('exerciseList');
+    if (grid && exerciseData.length > 0) {
+        var colors = ['--accent-green', '--accent-blue', '--accent-orange', '--accent-purple', '--accent-red', '--accent-teal'];
+        exerciseData.forEach(function(e, i) {
+            var accent = 'var(' + colors[i % colors.length] + ')';
+            var card = document.createElement('div');
+            card.className = 'exercise-card';
+            card.style.setProperty('--card-accent', accent);
+            card.innerHTML =
+                '<div class="exercise-card-icon" style="color:' + accent + ';"><i class="' + (e.icon || 'fa-solid fa-dumbbell') + '"></i></div>' +
+                '<div class="exercise-card-name">' + e.type + '</div>' +
+                '<div class="exercise-card-duration">' + e.duration + ' <span>min</span></div>' +
+                '<div class="exercise-card-time">' + e.time + '</div>';
+            grid.appendChild(card);
+        });
+    }
+});
+</script>
+}

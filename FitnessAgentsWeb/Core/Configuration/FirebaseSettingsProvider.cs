@@ -32,6 +32,7 @@ namespace FitnessAgentsWeb.Core.Configuration
         private string _adminEmail = string.Empty;
         private string _adminPassword = string.Empty;
         private string _appTimezone = "India Standard Time";
+        private string _firebaseDatabaseSecret = string.Empty;
 
         private readonly Microsoft.Extensions.Logging.ILogger<FirebaseSettingsProvider> _logger;
 
@@ -42,7 +43,16 @@ namespace FitnessAgentsWeb.Core.Configuration
                                  ?? configuration["FirebaseSettings:DatabaseUrl"] 
                                  ?? "https://fitnessagent-1ef17-default-rtdb.asia-southeast1.firebasedatabase.app/";
             
-            _realtimeDb = new FirebaseClient(databaseUrl);
+            _realtimeDb = new FirebaseClient(databaseUrl, new Firebase.Database.FirebaseOptions
+            {
+                AuthTokenAsyncFactory = () =>
+                {
+                    string secret = Environment.GetEnvironmentVariable("FIREBASE_DATABASE_SECRET") 
+                                    ?? configuration["FirebaseSettings:DatabaseSecret"] 
+                                    ?? "";
+                    return Task.FromResult(secret);
+                }
+            });
             
             // For now, hardcode or pass the user ID. In a real app with auth, this comes from the token.
             _userId = configuration["FirebaseSettings:DefaultUserId"] ?? "default_user";
@@ -74,12 +84,12 @@ namespace FitnessAgentsWeb.Core.Configuration
             string aiModel, string aiEndpoint, string aiKey, 
             string ocrModel, string ocrEndpoint, string ocrKey,
             string smtpHost, string smtpPort, string fromEmail, string smtpPassword,
-            string timezone)
+            string timezone, string firebaseDatabaseSecret = "")
         {
             var configData = new Dictionary<string, object>
             {
                 { "AdminEmail", adminEmail },
-                { "AdminPassword", adminPassword }, // In production, hash this!
+                { "AdminPassword", adminPassword },
                 { "AiModel", aiModel },
                 { "AiEndpoint", aiEndpoint },
                 { "AiKey", aiKey },
@@ -90,7 +100,8 @@ namespace FitnessAgentsWeb.Core.Configuration
                 { "SmtpPort", smtpPort },
                 { "FromEmail", fromEmail },
                 { "SmtpPassword", smtpPassword },
-                { "AppTimezone", timezone }
+                { "AppTimezone", timezone },
+                { "FirebaseDatabaseSecret", firebaseDatabaseSecret }
             };
 
             // Save global configuration
@@ -154,6 +165,7 @@ namespace FitnessAgentsWeb.Core.Configuration
                     _adminEmail = snapshot.ContainsKey("AdminEmail") ? snapshot["AdminEmail"].ToString()! : "";
                     _adminPassword = snapshot.ContainsKey("AdminPassword") ? snapshot["AdminPassword"].ToString()! : "";
                     _appTimezone = snapshot.ContainsKey("AppTimezone") ? snapshot["AppTimezone"].ToString()! : "India Standard Time";
+                    _firebaseDatabaseSecret = snapshot.ContainsKey("FirebaseDatabaseSecret") ? snapshot["FirebaseDatabaseSecret"].ToString()! : "";
                     
                     TimezoneHelper.CurrentTimezoneId = _appTimezone;
                     
@@ -187,5 +199,6 @@ namespace FitnessAgentsWeb.Core.Configuration
         public string GetAdminEmail() => _adminEmail;
         public string GetAdminPassword() => _adminPassword;
         public string GetAppTimezone() => _appTimezone;
+        public string GetFirebaseDatabaseSecret() => _firebaseDatabaseSecret;
     }
 }

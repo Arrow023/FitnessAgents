@@ -1,0 +1,73 @@
+@model WorkoutListViewModel
+@{
+    ViewData["Title"] = "Workouts";
+}
+
+<div class="page-header fade-up">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h1 class="page-title">Workout Plans</h1>
+            <p class="page-subtitle">Weekly AI-orchestrated training history.</p>
+        </div>
+        <form method="post" asp-controller="Workout" asp-action="Generate">
+            <input type="hidden" name="userId" value="@Model.UserId" />
+            <button type="submit" class="btn">
+                <i class="fa-solid fa-bolt"></i> Generate New Plan
+            </button>
+        </form>
+    </div>
+</div>
+
+@if (Model.WeeklyHistory is not null && Model.WeeklyHistory.PastWorkouts.Count > 0)
+{
+    var icons = new Dictionary<string, string>
+    {
+        ["Monday"] = "fa-solid fa-fire",
+        ["Tuesday"] = "fa-solid fa-hand-fist",
+        ["Wednesday"] = "fa-solid fa-bullseye",
+        ["Thursday"] = "fa-solid fa-shield",
+        ["Friday"] = "fa-solid fa-diamond",
+        ["Saturday"] = "fa-solid fa-person-walking",
+        ["Sunday"] = "fa-solid fa-leaf"
+    };
+
+    <div class="grid-auto">
+        @{ var delay = 0; }
+        @foreach (var workout in Model.WeeklyHistory.PastWorkouts.OrderByDescending(w => w.Key))
+        {
+            delay++;
+            var icon = icons.GetValueOrDefault(workout.Key, "fa-solid fa-dumbbell");
+            <div class="workout-card fade-up stagger-@(Math.Min(delay, 4))">
+                <a href="/Workout/Detail?userId=@Model.UserId&day=@workout.Key" style="text-decoration: none; color: inherit;">
+                    <div class="workout-card-thumb">
+                        <i class="@icon"></i>
+                    </div>
+                    <div class="workout-card-body">
+                        <div class="workout-card-day">@workout.Key</div>
+                        <div class="workout-card-preview">@(workout.Value.Length > 150 ? workout.Value[..150] + "..." : workout.Value)</div>
+                    </div>
+                </a>
+                <div class="workout-card-footer">
+                    <a href="/Workout/Detail?userId=@Model.UserId&day=@workout.Key" class="btn btn-sm btn-outline">
+                        <i class="fa-solid fa-eye"></i> View
+                    </a>
+                    <form method="post" asp-controller="Workout" asp-action="ResendEmail" style="margin: 0;">
+                        <input type="hidden" name="userId" value="@Model.UserId" />
+                        <input type="hidden" name="dayOfWeek" value="@workout.Key" />
+                        <button type="submit" class="btn btn-sm btn-ghost" title="Resend to email">
+                            <i class="fa-solid fa-envelope"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="empty-state fade-up">
+        <div class="empty-state-icon"><i class="fa-solid fa-clipboard-list"></i></div>
+        <div class="empty-state-title">No workouts yet this week</div>
+        <div class="empty-state-text">Generate your first AI workout plan or wait for your scheduled notification.</div>
+    </div>
+}

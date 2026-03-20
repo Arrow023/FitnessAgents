@@ -10,6 +10,7 @@ namespace FitnessAgentsWeb.Models
         public string Preferences { get; set; } = "No reported pain or injuries."; // Used for AI ConditionsBrief
         public string FoodPreferences { get; set; } = "No specific food preferences."; 
         public bool IsActive { get; set; } = true;
+        public int Age { get; set; } = 30; // Used for VO2max estimation (220 - Age = HRmax)
 
         public string? WebhookHeaderKey { get; set; }
         public string? WebhookHeaderValue { get; set; }

@@ -1,0 +1,78 @@
+@model ExerciseHistoryViewModel
+@{
+    ViewData["Title"] = "Exercise History";
+    var colors = new[] { "--accent-green", "--accent-blue", "--accent-orange", "--accent-purple", "--accent-red", "--accent-teal" };
+    var colorIdx = 0;
+}
+
+<div class="page-header fade-up">
+    <div>
+        <h1 class="page-title">Exercise History</h1>
+        <p class="page-subtitle">All your Health Connect exercise sessions — up to 15 days.</p>
+    </div>
+</div>
+
+@if (Model.Days.Count > 0)
+{
+    <!-- Summary strip -->
+    <div class="exercise-summary-strip fade-up">
+        <div class="exercise-summary-stat">
+            <div class="exercise-summary-value">@Model.TotalSessions</div>
+            <div class="exercise-summary-label">Sessions</div>
+        </div>
+        <div class="exercise-summary-divider"></div>
+        <div class="exercise-summary-stat">
+            <div class="exercise-summary-value">@Model.TotalMinutes</div>
+            <div class="exercise-summary-label">Total Minutes</div>
+        </div>
+        <div class="exercise-summary-divider"></div>
+        <div class="exercise-summary-stat">
+            <div class="exercise-summary-value">@Model.Days.Count</div>
+            <div class="exercise-summary-label">Active Days</div>
+        </div>
+    </div>
+
+    var stagger = 0;
+    foreach (var day in Model.Days)
+    {
+        stagger++;
+        <div class="exercise-day-section fade-up stagger-@(Math.Min(stagger, 4))">
+            <div class="exercise-day-header">
+                <div class="exercise-day-label">
+                    @if (day.IsToday)
+                    {
+                        <span class="exercise-today-badge">Today</span>
+                    }
+                    else
+                    {
+                        @day.DateLabel
+                    }
+                </div>
+                <div class="exercise-day-total">@day.TotalMinutes min &middot; @day.Sessions.Count session@(day.Sessions.Count != 1 ? "s" : "")</div>
+            </div>
+            <div class="exercise-cards-grid">
+                @foreach (var session in day.Sessions)
+                {
+                    var accent = $"var({colors[colorIdx % colors.Length]})";
+                    colorIdx++;
+                    <div class="exercise-card" style="--card-accent: @accent;">
+                        <div class="exercise-card-icon" style="color: @accent;">
+                            <i class="@session.Icon"></i>
+                        </div>
+                        <div class="exercise-card-name">@session.Name</div>
+                        <div class="exercise-card-duration">@session.DurationMinutes <span>min</span></div>
+                        <div class="exercise-card-time">@session.StartTime — @session.EndTime</div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}
+else
+{
+    <div class="empty-state fade-up">
+        <div class="empty-state-icon"><i class="fa-solid fa-person-running"></i></div>
+        <div class="empty-state-title">No exercise sessions recorded</div>
+        <div class="empty-state-text">Once Health Connect syncs exercise data (walking, cycling, running, etc.), it will appear here.</div>
+    </div>
+}

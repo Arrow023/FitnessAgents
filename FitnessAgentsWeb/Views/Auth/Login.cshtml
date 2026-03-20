@@ -1,29 +1,64 @@
+@model LoginViewModel
 @{
     ViewData["Title"] = "Login";
+    ViewData["AuthPage"] = true;
 }
 
-<div style="max-width: 400px; margin: 10vh auto;" class="glass-panel">
-    <div style="text-align: center; margin-bottom: 2rem;">
-        <h1 class="section-title" style="font-size: 2.5rem;">Welcome Back</h1>
-        <p class="section-subtitle" style="margin-bottom:0;">Access your Fitness AI Dashboard</p>
+<div class="auth-layout">
+    <!-- Left: Form -->
+    <div class="auth-form-side">
+        <div style="width: 100%; max-width: 400px;">
+            <div style="margin-bottom: 2.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2rem;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: var(--primary); display: flex; align-items: center; justify-content: center;">
+                        <i class="fa-solid fa-heart-pulse" style="color: #fff; font-size: 1.2rem;"></i>
+                    </div>
+                    <span style="font-weight: 800; font-size: 1.4rem; color: var(--text);">FitnessAgents</span>
+                </div>
+                <h1 style="font-size: 2rem; font-weight: 800; margin: 0 0 0.5rem; color: var(--text);">Welcome back</h1>
+                <p style="color: var(--text-secondary); margin: 0; font-size: 1rem;">Sign in to access your AI-powered fitness dashboard.</p>
+            </div>
+
+            @if (Model?.ErrorMessage != null)
+            {
+                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--accent-red); color: var(--accent-red); padding: 0.75rem 1rem; border-radius: var(--radius); margin-bottom: 1.25rem; font-size: 0.9rem;">
+                    <i class="fa-solid fa-circle-exclamation" style="margin-right: 0.5rem;"></i>@Model.ErrorMessage
+                </div>
+            }
+
+            <form method="post" asp-controller="Auth" asp-action="Login">
+                <div class="form-group">
+                    <label class="form-label">Username or Email</label>
+                    <input type="text" name="email" required placeholder="admin@example.com or user_id" class="form-control" autofocus />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" name="password" required placeholder="••••••••" class="form-control" />
+                </div>
+                <button type="submit" class="btn btn-block" style="margin-top: 0.5rem; padding: 0.85rem;">
+                    <i class="fa-solid fa-arrow-right-to-bracket" style="margin-right: 0.5rem;"></i>Sign In
+                </button>
+            </form>
+
+            <p style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-secondary);">
+                Open-source AI Fitness Assistant &mdash; <a href="https://github.com" style="color: var(--primary); text-decoration: none; font-weight: 600;">View on GitHub</a>
+            </p>
+        </div>
     </div>
 
-    @if (ViewBag.Error != null)
-    {
-        <div style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; text-align: center;">
-            @ViewBag.Error
+    <!-- Right: Illustration -->
+    <div class="auth-illustration-side">
+        <div style="text-align: center; max-width: 380px;">
+            <i class="fa-solid fa-dumbbell" style="font-size: 4rem; color: rgba(255,255,255,0.9); margin-bottom: 1.5rem;"></i>
+            <h2 style="font-size: 1.8rem; font-weight: 800; color: #fff; margin: 0 0 0.75rem;">Your AI Fitness Coach</h2>
+            <p style="color: rgba(255,255,255,0.8); font-size: 1.05rem; line-height: 1.6; margin: 0;">
+                Personalized workout and diet plans generated daily using your real health data and body composition.
+            </p>
+            <div style="margin-top: 2rem; display: flex; justify-content: center; gap: 2rem; color: rgba(255,255,255,0.7); font-size: 0.9rem;">
+                <div><i class="fa-solid fa-brain" style="display: block; font-size: 1.5rem; color: rgba(255,255,255,0.9); margin-bottom: 0.5rem;"></i>AI Powered</div>
+                <div><i class="fa-solid fa-chart-line" style="display: block; font-size: 1.5rem; color: rgba(255,255,255,0.9); margin-bottom: 0.5rem;"></i>Data Driven</div>
+                <div><i class="fa-solid fa-lock-open" style="display: block; font-size: 1.5rem; color: rgba(255,255,255,0.9); margin-bottom: 0.5rem;"></i>Open Source</div>
+            </div>
         </div>
-    }
-
-    <form method="post" action="/Auth/Login">
-        <div class="form-group">
-            <label>Username / User ID</label>
-            <input type="text" name="email" required placeholder="Enter Admin Email or User ID" />
-        </div>
-        <div class="form-group">
-            <label>Password</label>
-            <input type="password" name="password" required placeholder="Enter your password" />
-        </div>
-        <button type="submit" class="btn" style="margin-top: 1rem;">Sign In</button>
-    </form>
+    </div>
 </div>

@@ -22,7 +22,14 @@ namespace FitnessAgentsWeb.Core.Services
                                  ?? configuration["FirebaseSettings:DatabaseUrl"] 
                                  ?? "https://fitnessagent-1ef17-default-rtdb.asia-southeast1.firebasedatabase.app/";
             
-            _firebaseClient = new FirebaseClient(databaseUrl);
+            string databaseSecret = Environment.GetEnvironmentVariable("FIREBASE_DATABASE_SECRET") 
+                                     ?? configuration["FirebaseSettings:DatabaseSecret"] 
+                                     ?? "";
+
+            _firebaseClient = new FirebaseClient(databaseUrl, new Firebase.Database.FirebaseOptions
+            {
+                AuthTokenAsyncFactory = () => Task.FromResult(databaseSecret)
+            });
         }
 
         private string Norm(string userId) => userId?.Trim().ToLowerInvariant() ?? "default_user";

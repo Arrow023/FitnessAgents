@@ -1,0 +1,36 @@
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null",
+    "config": {
+      "app_settings": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+    "users": {
+      "$userId": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        "profile": {
+          ".validate": "newData.hasChildren(['FirstName', 'IsActive'])"
+        },
+        "health_connect": {
+          ".validate": true
+        },
+        "weekly_history": {
+          ".validate": true
+        },
+        "weekly_diet_history": {
+          ".validate": true
+        },
+        "inbody": {
+          ".validate": true
+        },
+        "diet": {
+          ".validate": true
+        }
+      }
+    }
+  }
+}

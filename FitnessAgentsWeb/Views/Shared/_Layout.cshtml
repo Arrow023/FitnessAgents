@@ -1,71 +1,99 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Fitness Agents</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <title>@ViewData["Title"] - FitnessAgents</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/layout.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/components.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Restore theme before render to prevent flash
+        (function() {
+            var t = localStorage.getItem('fitnessagents-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
 </head>
 <body>
-    <div class="app-container">
-        <!-- Sidebar Navigation -->
-        <aside class="sidebar">
-            <div class="sidebar-brand">
-                <i class="fa-solid fa-dumbbell"></i> FitnessAgents
-            </div>
-            
+    @{
+        var activeNav = ViewData["ActiveNav"]?.ToString() ?? "overview";
+        var isAuthPage = ViewData["AuthPage"] != null;
+    }
+
+    @if (isAuthPage)
+    {
+        @RenderBody()
+    }
+    else
+    {
+    <div class="app-shell" id="appShell">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <a href="/" class="sidebar-brand">
+                <div class="sidebar-brand-icon"><i class="fa-solid fa-heartbeat"></i></div>
+                <span class="sidebar-brand-text">FitnessAgents</span>
+            </a>
+
             <nav class="sidebar-nav">
-                <a href="#" class="nav-item active" onclick="switchTab('overview')">
-                    <div class="icon-box"><i class="fa-solid fa-house"></i></div>
+                <div class="sidebar-nav-label">Main</div>
+                <a href="/" class="nav-link @(activeNav == "overview" ? "active" : "")">
+                    <span class="nav-link-icon"><i class="fa-solid fa-chart-pie"></i></span>
                     <span>Overview</span>
                 </a>
-                <a href="#" class="nav-item" onclick="switchTab('diet')">
-                    <div class="icon-box"><i class="fa-solid fa-utensils"></i></div>
-                    <span>Diet Planner</span>
+                <a href="/Workout" class="nav-link @(activeNav == "workout" ? "active" : "")">
+                    <span class="nav-link-icon"><i class="fa-solid fa-dumbbell"></i></span>
+                    <span>Workout</span>
                 </a>
-                <a href="#" class="nav-item" onclick="switchTab('exercise')">
-                    <div class="icon-box"><i class="fa-solid fa-person-running"></i></div>
-                    <span>Workout Plans</span>
+                <a href="/Exercise" class="nav-link @(activeNav == "exercise" ? "active" : "")">
+                    <span class="nav-link-icon"><i class="fa-solid fa-person-running"></i></span>
+                    <span>Exercise</span>
                 </a>
-                <a href="#" class="nav-item" onclick="switchTab('preferences')">
-                    <div class="icon-box"><i class="fa-solid fa-sliders"></i></div>
-                    <span>Preferences</span>
+                <a href="/Diet" class="nav-link @(activeNav == "diet" ? "active" : "")">
+                    <span class="nav-link-icon"><i class="fa-solid fa-utensils"></i></span>
+                    <span>Diet Plan</span>
                 </a>
-            </nav>
-
-            <div class="sidebar-bottom">
-                @if (User.Identity != null && User.Identity.IsAuthenticated)
-                {
-                    <div style="padding: 1rem; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; text-align: center; background: rgba(0,0,0,0.02); border-radius: 8px; border: 1px solid var(--border);">
-                        👤 <strong>@User.Identity.Name</strong>
-                        <div style="font-size: 0.7rem; margin-top: 0.2rem; text-transform: uppercase;">@(User.IsInRole("Admin") ? "Administrator" : "User Profile")</div>
-                    </div>
-                }
+                <a href="/Profile" class="nav-link @(activeNav == "profile" ? "active" : "")">
+                    <span class="nav-link-icon"><i class="fa-solid fa-user"></i></span>
+                    <span>Profile</span>
+                </a>
 
                 @if (User.IsInRole("Admin"))
                 {
-                    <a href="/Admin/Users" class="nav-item">
-                        <div class="icon-box"><i class="fa-solid fa-user-group"></i></div>
-                        <span>Family & Friends</span>
+                    <div class="sidebar-nav-label">Administration</div>
+                    <a href="/Admin/Users" class="nav-link @(activeNav == "users" ? "active" : "")">
+                        <span class="nav-link-icon"><i class="fa-solid fa-user-group"></i></span>
+                        <span>Users</span>
                     </a>
-                    <a href="/Admin/Settings" class="nav-item">
-                        <div class="icon-box"><i class="fa-solid fa-gear"></i></div>
-                        <span>App Configuration</span>
+                    <a href="/Admin/Settings" class="nav-link @(activeNav == "settings" ? "active" : "")">
+                        <span class="nav-link-icon"><i class="fa-solid fa-gear"></i></span>
+                        <span>Settings</span>
                     </a>
-                    <a href="/Admin/Logs" class="nav-item">
-                        <div class="icon-box"><i class="fa-solid fa-terminal"></i></div>
-                        <span>System Logs</span>
+                    <a href="/Admin/Logs" class="nav-link @(activeNav == "logs" ? "active" : "")">
+                        <span class="nav-link-icon"><i class="fa-solid fa-terminal"></i></span>
+                        <span>Logs</span>
                     </a>
                 }
+            </nav>
 
-                @if (User.Identity != null && User.Identity.IsAuthenticated)
+            <div class="sidebar-footer">
+                @if (User.Identity is not null && User.Identity.IsAuthenticated)
                 {
-                    <form method="post" action="/Auth/Logout" class="logout-form">
-                        <button type="submit" class="logout-btn nav-item" style="appearance: none; background: transparent; border: none; text-align: left; width: 100%; cursor: pointer;">
-                            <div class="icon-box"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
+                    <div class="sidebar-user">
+                        <div class="sidebar-user-avatar">
+                            @(User.Identity.Name?.Substring(0, 1).ToUpper() ?? "U")
+                        </div>
+                        <div class="sidebar-user-info">
+                            <span class="sidebar-user-name">@User.Identity.Name</span>
+                            <span class="sidebar-user-role">@(User.IsInRole("Admin") ? "Administrator" : "Member")</span>
+                        </div>
+                    </div>
+                    <form method="post" action="/Auth/Logout">
+                        <button type="submit" class="nav-link logout-btn">
+                            <span class="nav-link-icon"><i class="fa-solid fa-arrow-right-from-bracket"></i></span>
                             <span>Logout</span>
                         </button>
                     </form>
@@ -73,53 +101,83 @@
             </div>
         </aside>
 
-        <!-- Main Content Area -->
-        <main class="main-content">
-            @RenderBody()
-        </main>
+        <button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle sidebar">
+            <i class="fa-solid fa-chevron-left"></i>
+        </button>
+
+        <!-- Main Area -->
+        <div class="main-area" id="mainArea">
+            <header class="topbar">
+                <button class="topbar-btn" style="display:none;" id="mobileMenuBtn" onclick="document.getElementById('sidebar').classList.toggle('mobile-open')">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div class="topbar-search">
+                    <i class="fa-solid fa-magnifying-glass" style="font-size: 0.85rem;"></i>
+                    <input type="text" placeholder="Search..." disabled />
+                </div>
+                <div class="topbar-actions">
+                    <button class="topbar-btn" onclick="toggleTheme()" title="Toggle theme" id="themeToggleBtn">
+                        <i class="fa-solid fa-sun"></i>
+                    </button>
+                    <button class="topbar-btn" title="Notifications">
+                        <i class="fa-solid fa-bell"></i>
+                    </button>
+                    @if (User.Identity is not null && User.Identity.IsAuthenticated)
+                    {
+                        <div class="topbar-avatar">@(User.Identity.Name?.Substring(0, 1).ToUpper() ?? "U")</div>
+                    }
+                </div>
+            </header>
+
+            <div class="page-content">
+                @RenderBody()
+            </div>
+        </div>
     </div>
+    }
+
     <script>
+        function toggleTheme() {
+            var html = document.documentElement;
+            var current = html.getAttribute('data-theme');
+            var next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('fitnessagents-theme', next);
+            updateThemeIcon(next);
+        }
+
+        function updateThemeIcon(theme) {
+            var btn = document.getElementById('themeToggleBtn');
+            if (!btn) return;
+            btn.innerHTML = theme === 'dark'
+                ? '<i class="fa-solid fa-sun"></i>'
+                : '<i class="fa-solid fa-moon"></i>';
+        }
+
+        function toggleSidebar() {
+            document.getElementById('appShell')?.classList.toggle('sidebar-collapsed');
+            var collapsed = document.getElementById('appShell')?.classList.contains('sidebar-collapsed');
+            localStorage.setItem('fitnessagents-sidebar', collapsed ? 'collapsed' : 'expanded');
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
-            var hash = window.location.hash;
-            if (hash && hash.startsWith('#tab-')) {
-                var tabId = hash.replace('#tab-', '');
-                switchTab(tabId, false);
+            // Restore sidebar state
+            if (localStorage.getItem('fitnessagents-sidebar') === 'collapsed') {
+                document.getElementById('appShell')?.classList.add('sidebar-collapsed');
+            }
+            // Set theme icon
+            updateThemeIcon(document.documentElement.getAttribute('data-theme') || 'dark');
+
+            // Mobile menu visibility
+            if (window.innerWidth <= 768) {
+                var mb = document.getElementById('mobileMenuBtn');
+                if (mb) mb.style.display = 'flex';
             }
         });
-
-        function switchTab(tabId, updateHash = true) {
-            var target = document.getElementById('tab-' + tabId);
-            
-            // If the tab doesn't exist on this page (e.g., we are on Admin/Users), route to Dashboard
-            if (!target) {
-                window.location.href = '/Dashboard#tab-' + tabId;
-                return;
-            }
-
-            if (updateHash) {
-                window.history.pushState(null, null, '#tab-' + tabId);
-            }
-
-            // Update active nav-item
-            document.querySelectorAll('.sidebar-nav .nav-item').forEach(el => el.classList.remove('active'));
-            if (event && event.currentTarget) {
-                event.currentTarget.classList.add('active');
-            } else {
-                // If called programmatically (like on load), find the right nav item
-                var link = document.querySelector(`.sidebar-nav .nav-item[onclick*="'${tabId}'"]`);
-                if (link) link.classList.add('active');
-            }
-            
-            // Hide all tab-panes
-            document.querySelectorAll('.tab-pane').forEach(el => {
-                el.style.display = 'none';
-                el.classList.remove('active');
-            });
-            
-            // Show targeted tab-pane
-            target.style.display = 'block';
-            setTimeout(() => target.classList.add('active'), 10); // slight delay for transition
-        }
     </script>
+    @if (IsSectionDefined("Scripts"))
+    {
+        @RenderSection("Scripts", required: false)
+    }
 </body>
 </html>

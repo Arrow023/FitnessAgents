@@ -1,3 +1,4 @@
+using FitnessAgentsWeb.Core.Helpers;
 using FitnessAgentsWeb.Core.Interfaces;
 using FitnessAgentsWeb.Models;
 using FitnessAgentsWeb.Tools;
@@ -41,7 +42,7 @@ namespace FitnessAgentsWeb.Core.Services
                 return newPayload;
             }
 
-            DateTime cutoff = DateTime.UtcNow.AddDays(-7);
+            DateTime cutoff = DateTime.UtcNow.AddDays(-15);
 
             return new HealthExportPayload
             {
@@ -79,7 +80,42 @@ namespace FitnessAgentsWeb.Core.Services
 
                 Exercise = existingPayload.Exercise.Concat(newPayload.Exercise)
                     .GroupBy(e => e.StartTime).Select(g => g.First())
-                    .Where(e => e.StartTime >= cutoff).ToList()
+                    .Where(e => e.StartTime >= cutoff).ToList(),
+
+                BloodPressure = existingPayload.BloodPressure.Concat(newPayload.BloodPressure)
+                    .GroupBy(b => b.Time).Select(g => g.First())
+                    .Where(b => b.Time >= cutoff).ToList(),
+
+                BloodGlucose = existingPayload.BloodGlucose.Concat(newPayload.BloodGlucose)
+                    .GroupBy(b => b.Time).Select(g => g.First())
+                    .Where(b => b.Time >= cutoff).ToList(),
+
+                OxygenSaturation = existingPayload.OxygenSaturation.Concat(newPayload.OxygenSaturation)
+                    .GroupBy(o => o.Time).Select(g => g.First())
+                    .Where(o => o.Time >= cutoff).ToList(),
+
+                BodyTemperature = existingPayload.BodyTemperature.Concat(newPayload.BodyTemperature)
+                    .GroupBy(t => t.Time).Select(g => g.First())
+                    .Where(t => t.Time >= cutoff).ToList(),
+
+                RespiratoryRate = existingPayload.RespiratoryRate.Concat(newPayload.RespiratoryRate)
+                    .GroupBy(r => r.Time).Select(g => g.First())
+                    .Where(r => r.Time >= cutoff).ToList(),
+
+                Hydration = existingPayload.Hydration.Concat(newPayload.Hydration)
+                    .GroupBy(h => h.EndTime).Select(g => g.First())
+                    .Where(h => h.EndTime >= cutoff).ToList(),
+
+                Nutrition = existingPayload.Nutrition.Concat(newPayload.Nutrition)
+                    .GroupBy(n => n.EndTime).Select(g => g.First())
+                    .Where(n => n.EndTime >= cutoff).ToList(),
+
+                // Keep all recent VO2max records + always retain the latest one (VO2 tests are infrequent)
+                Vo2Max = existingPayload.Vo2Max.Concat(newPayload.Vo2Max)
+                    .GroupBy(v => v.Time).Select(g => g.First())
+                    .OrderByDescending(v => v.Time)
+                    .Where((v, i) => v.Time >= cutoff || i == 0)
+                    .ToList()
             };
         }
 
@@ -98,6 +134,8 @@ namespace FitnessAgentsWeb.Core.Services
                 DateTime latestDataUtc = allDates.Any() ? allDates.Max() : DateTime.UtcNow;
                 DateTime targetDateIst = TimeZoneInfo.ConvertTimeFromUtc(latestDataUtc, _istZone).Date;
 
+                context.DataTimestamp = TimeZoneInfo.ConvertTimeFromUtc(latestDataUtc, _istZone).ToString("MMM dd, hh:mm tt");
+
                 DateTime activityStart = targetDateIst;
                 DateTime activityEnd = targetDateIst.AddDays(1);
                 DateTime sleepStart = targetDateIst.AddHours(-12);
@@ -106,6 +144,7 @@ namespace FitnessAgentsWeb.Core.Services
                 bool IsTargetActivity(DateTime utcTime) => TimeZoneInfo.ConvertTimeFromUtc(utcTime, _istZone) >= activityStart && TimeZoneInfo.ConvertTimeFromUtc(utcTime, _istZone) < activityEnd;
                 bool IsTargetSleep(DateTime utcTime) => TimeZoneInfo.ConvertTimeFromUtc(utcTime, _istZone) >= sleepStart && TimeZoneInfo.ConvertTimeFromUtc(utcTime, _istZone) < sleepEnd;
 
+                // ── Sleep metrics ──
                 var targetSleepSessions = hc.Sleep.Where(s => IsTargetSleep(s.SessionEndTime)).ToList();
                 int totalSleepSecs = targetSleepSessions.SelectMany(s => s.Stages).Where(st => st.Stage != "1" && st.Stage != "2").Sum(st => st.DurationSeconds);
                 context.VitalsSleepTotal = $"{totalSleepSecs / 3600}h {(totalSleepSecs % 3600) / 60}m";
@@ -113,9 +152,22 @@ namespace FitnessAgentsWeb.Core.Services
                 int deepSleepSecs = targetSleepSessions.SelectMany(s => s.Stages).Where(st => st.Stage == "4").Sum(st => st.DurationSeconds);
                 context.VitalsSleepDeep = $"{deepSleepSecs / 3600}h {(deepSleepSecs % 3600) / 60}m";
 
+                // Sleep efficiency: actual sleep / total time in bed
+                int totalTimeInBedSecs = targetSleepSessions.Sum(s => s.DurationSeconds);
+                if (totalTimeInBedSecs > 0)
+                {
+                    double efficiency = (double)totalSleepSecs / totalTimeInBedSecs * 100;
+                    context.SleepEfficiency = Math.Round(efficiency, 0).ToString("0");
+                }
+
+                // ── Heart metrics ──
                 var targetHrv = hc.HRV.Where(h => IsTargetActivity(h.Time)).OrderByDescending(h => h.Time).FirstOrDefault();
                 context.VitalsHrv = targetHrv != null ? Math.Round(targetHrv.Rmssd, 0).ToString() : "--";
 
+                var targetRhr = hc.RestingHeartRate.Where(r => IsTargetActivity(r.Time)).OrderByDescending(r => r.Time).FirstOrDefault();
+                context.VitalsRhr = targetRhr != null ? targetRhr.Bpm.ToString() : "--";
+
+                // ── Activity metrics ──
                 var latestSteps = hc.Steps.Where(s => IsTargetActivity(s.EndTime)).OrderByDescending(s => s.EndTime).FirstOrDefault();
                 context.VitalsSteps = latestSteps != null ? latestSteps.Count.ToString("N0") : "0";
 
@@ -128,17 +180,110 @@ namespace FitnessAgentsWeb.Core.Services
                 context.VitalsCalories = latestActiveCals != null ? Math.Round(latestActiveCals.Calories, 0).ToString("N0") + " kcal" : "0 kcal";
                 context.VitalsTotalCalories = latestTotalCals != null ? Math.Round(latestTotalCals.Calories, 0).ToString("N0") + " kcal" : "0 kcal";
 
-                var targetRhr = hc.RestingHeartRate.Where(r => IsTargetActivity(r.Time)).OrderByDescending(r => r.Time).FirstOrDefault();
-                context.VitalsRhr = targetRhr != null ? targetRhr.Bpm.ToString() : "--";
+                // ── Phase 2: Expanded Vitals ──
+                var latestBp = hc.BloodPressure.Where(b => IsTargetActivity(b.Time)).OrderByDescending(b => b.Time).FirstOrDefault();
+                if (latestBp != null)
+                    context.VitalsBloodPressure = $"{Math.Round(latestBp.Systolic, 0)}/{Math.Round(latestBp.Diastolic, 0)}";
 
-                context.ReadinessBrief = $"[TARGET DAY: {targetDateIst:MMM dd}] Sleep: {context.VitalsSleepTotal} (Deep: {context.VitalsSleepDeep}). RHR: {context.VitalsRhr} bpm. HRV: {context.VitalsHrv}. Steps: {context.VitalsSteps}. Active Burn: {context.VitalsCalories} (Total: {Math.Round(latestTotalCals?.Calories ?? 0, 0)} kcal).";
+                var latestSpO2 = hc.OxygenSaturation.Where(o => IsTargetActivity(o.Time)).OrderByDescending(o => o.Time).FirstOrDefault();
+                if (latestSpO2 != null)
+                    context.VitalsSpO2 = Math.Round(latestSpO2.Percentage, 0).ToString();
+
+                // VO2max from Health Connect
+                var latestVo2 = hc.Vo2Max.Where(v => IsTargetActivity(v.Time)).OrderByDescending(v => v.Time).FirstOrDefault();
+                if (latestVo2 != null)
+                    context.VitalsVo2Max = Math.Round(latestVo2.Vo2MlPerMinKg, 1).ToString("0.0");
+
+                var latestRespRate = hc.RespiratoryRate.Where(r => IsTargetActivity(r.Time)).OrderByDescending(r => r.Time).FirstOrDefault();
+                if (latestRespRate != null)
+                    context.VitalsRespiratoryRate = Math.Round(latestRespRate.Rate, 0).ToString();
+
+                double totalHydration = hc.Hydration.Where(h => IsTargetActivity(h.EndTime)).Sum(h => h.Liters);
+                if (totalHydration > 0)
+                    context.VitalsHydration = totalHydration.ToString("0.0");
+
+                // Nutrition (daily aggregate)
+                var todayNutrition = hc.Nutrition.Where(n => IsTargetActivity(n.EndTime)).ToList();
+                if (todayNutrition.Any())
+                {
+                    context.VitalsNutritionCalories = Math.Round(todayNutrition.Sum(n => n.Calories ?? 0), 0).ToString("N0");
+                    context.VitalsProtein = Math.Round(todayNutrition.Sum(n => n.ProteinGrams ?? 0), 0).ToString();
+                    context.VitalsCarbs = Math.Round(todayNutrition.Sum(n => n.CarbsGrams ?? 0), 0).ToString();
+                    context.VitalsFat = Math.Round(todayNutrition.Sum(n => n.FatGrams ?? 0), 0).ToString();
+                }
+
+                // ── Phase 3: Computed Insights ──
+
+                // Calorie balance (intake - expenditure)
+                double nutritionCals = todayNutrition.Sum(n => n.Calories ?? 0);
+                double burnedCals = latestTotalCals?.Calories ?? 0;
+                if (nutritionCals > 0 || burnedCals > 0)
+                {
+                    double balance = nutritionCals - burnedCals;
+                    context.CalorieBalance = (balance >= 0 ? "+" : "") + Math.Round(balance, 0).ToString("N0");
+                }
+
+                // Exercise log (today's sessions as JSON for view rendering)
+                var todayExercise = hc.Exercise.Where(e => IsTargetActivity(e.StartTime))
+                    .OrderByDescending(e => e.StartTime).ToList();
+                if (todayExercise.Any())
+                {
+                    var exerciseEntries = todayExercise.Select(e => new
+                    {
+                        type = ExerciseTypeHelper.GetExerciseName(e.Type),
+                        icon = ExerciseTypeHelper.GetExerciseIcon(e.Type),
+                        duration = e.DurationSeconds / 60,
+                        time = TimeZoneInfo.ConvertTimeFromUtc(e.StartTime, _istZone).ToString("hh:mm tt")
+                    });
+                    context.ExerciseLog = JsonSerializer.Serialize(exerciseEntries);
+                }
+
+                // Active minutes this week (all exercise within 7 days)
+                DateTime weekStart = targetDateIst.AddDays(-6);
+                int activeMinutes = hc.Exercise
+                    .Where(e => TimeZoneInfo.ConvertTimeFromUtc(e.StartTime, _istZone).Date >= weekStart)
+                    .Sum(e => e.DurationSeconds) / 60;
+                context.ActiveMinutesWeekly = activeMinutes.ToString();
+
+                // Recovery score (0–100 composite: HRV, RHR, sleep quality, SpO2)
+                context.RecoveryScore = ComputeRecoveryScore(context, latestSpO2);
+
+                // Sleep score (0–100 composite: duration, deep sleep, efficiency)
+                context.SleepScore = ComputeSleepScore(totalSleepSecs, deepSleepSecs, totalTimeInBedSecs);
+
+                // Active score (0–100 composite: steps, calories, exercise minutes)
+                int todayExerciseMinutes = todayExercise.Sum(e => e.DurationSeconds) / 60;
+                context.ActiveScore = ComputeActiveScore(
+                    latestSteps?.Count ?? 0,
+                    latestActiveCals?.Calories ?? 0,
+                    todayExerciseMinutes);
+
+                // ── 7-day Trend Data (sparklines) ──
+                ComputeTrends(hc, context, targetDateIst);
+
+                // ── 15-day Averages ──
+                Compute15DayAverages(hc, context, targetDateIst);
+
+                context.ReadinessBrief = $"[TARGET DAY: {targetDateIst:MMM dd}] Sleep: {context.VitalsSleepTotal} (Deep: {context.VitalsSleepDeep}, Sleep Score: {context.SleepScore}/100). RHR: {context.VitalsRhr} bpm. HRV: {context.VitalsHrv}. Steps: {context.VitalsSteps}. Active Burn: {context.VitalsCalories} (Total: {Math.Round(latestTotalCals?.Calories ?? 0, 0)} kcal). Recovery: {context.RecoveryScore}/100. Active Score: {context.ActiveScore}/100. VO2max: {context.VitalsVo2Max}. 15-day Avg RHR: {context.AvgRhr15Day}, HRV: {context.AvgHrv15Day}, Steps: {context.AvgSteps15Day}, Sleep: {context.AvgSleep15Day}.";
             }
 
             // Load Weekly History Brief
             var weeklyHistory = await _storageRepository.GetWeeklyHistoryAsync(userId);
             if (weeklyHistory != null && weeklyHistory.PastWorkouts.Any())
             {
-                var summaries = weeklyHistory.PastWorkouts.Select(kvp => $"{kvp.Key}: {kvp.Value}");
+                var summaries = weeklyHistory.PastWorkouts.Select(kvp =>
+                {
+                    // Extract only the title (first meaningful line starting with #) or first line
+                    var lines = kvp.Value.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                    var title = lines.FirstOrDefault(l => l.TrimStart().StartsWith('#'))
+                                ?? lines.FirstOrDefault()
+                                ?? kvp.Value;
+                    // Strip markdown heading markers
+                    title = title.TrimStart('#', ' ');
+                    // Cap at 80 chars
+                    if (title.Length > 80) title = title[..80] + "...";
+                    return $"{kvp.Key}: {title}";
+                });
                 context.WeeklyHistoryBrief = "This week's completed workouts:\n" + string.Join("\n", summaries);
             }
             else
@@ -185,6 +330,15 @@ namespace FitnessAgentsWeb.Core.Services
                 _logger.LogWarning($"[HealthProcessor] Profile NOT FOUND for {userId}");
             }
 
+            // Estimate VO2max from RHR if not available from Health Connect
+            if (context.VitalsVo2Max == "--" && int.TryParse(context.VitalsRhr, out int rhrForVo2) && rhrForVo2 > 0)
+            {
+                int age = profile?.Age ?? 30;
+                double hrMax = 220.0 - age;
+                double estimatedVo2 = 15.3 * (hrMax / rhrForVo2);
+                context.VitalsVo2Max = Math.Round(estimatedVo2, 1).ToString("0.0") + "~";
+            }
+
             // Load User-Specific InBody & Conditions from Firebase
             try
             {
@@ -196,13 +350,16 @@ namespace FitnessAgentsWeb.Core.Services
                     context.InBodySmm = scan.Core.SmmKg.ToString("0.0");
                     context.InBodyBmr = scan.Metabolism.Bmr.ToString();
                     context.InBodyVisceral = scan.Metabolism.VisceralFatLevel.ToString();
-                    context.InBodyBmi = scan.Core.Bmi.ToString();
+                    context.InBodyBmi = scan.Core.Bmi.ToString("0.0");
+                    context.InBodyScanDate = scan.ScanDate ?? "--";
+                    context.InBodyFatControl = scan.Targets.FatControl.ToString("0.0");
+                    context.InBodyMuscleControl = scan.Targets.MuscleControl.ToString("0.0");
 
-                    var weak = new List<string>();
-                    if (scan.LeanBalance.LeftLeg == "Under" || scan.LeanBalance.RightLeg == "Under") weak.Add("Legs");
-                    if (scan.LeanBalance.LeftArm == "Under" || scan.LeanBalance.RightArm == "Under") weak.Add("Arms");
-                    if (scan.LeanBalance.Trunk == "Under") weak.Add("Core");
-                    context.InBodyImbalances = weak.Any() ? string.Join(", ", weak) : "Balanced";
+                    var imbalances = new List<string>();
+                    if (scan.LeanBalance.LeftLeg is "Under" or "Over" || scan.LeanBalance.RightLeg is "Under" or "Over") imbalances.Add("Legs");
+                    if (scan.LeanBalance.LeftArm is "Under" or "Over" || scan.LeanBalance.RightArm is "Under" or "Over") imbalances.Add("Arms");
+                    if (scan.LeanBalance.Trunk is "Under" or "Over") imbalances.Add("Core");
+                    context.InBodyImbalances = imbalances.Any() ? string.Join(", ", imbalances) : "Balanced";
 
                     context.InBodyBrief = $"Weight: {context.InBodyWeight}kg. Body Fat: {context.InBodyBf}%. BMR: {context.InBodyBmr} kcal. SMM: {context.InBodySmm}kg VisceralFat: {context.InBodyVisceral} BMI: {context.InBodyBmi} Focus: {context.InBodyImbalances}.";
                 }
@@ -229,6 +386,186 @@ namespace FitnessAgentsWeb.Core.Services
             }
 
             return context;
+        }
+
+        private static int ComputeRecoveryScore(UserHealthContext ctx, OxygenSaturationRecord? spO2)
+        {
+            // Weighted composite: HRV (35%), RHR (25%), Sleep (25%), SpO2 (15%)
+            double score = 0;
+            int factors = 0;
+
+            if (double.TryParse(ctx.VitalsHrv, out double hrv) && hrv > 0)
+            {
+                // HRV: 20ms = poor (0), 60ms = good (100)
+                double hrvScore = Math.Clamp((hrv - 20) / 40 * 100, 0, 100);
+                score += hrvScore * 0.35;
+                factors++;
+            }
+
+            if (int.TryParse(ctx.VitalsRhr, out int rhr) && rhr > 0)
+            {
+                // RHR: 80bpm = poor (0), 50bpm = excellent (100)
+                double rhrScore = Math.Clamp((80 - rhr) / 30.0 * 100, 0, 100);
+                score += rhrScore * 0.25;
+                factors++;
+            }
+
+            if (double.TryParse(ctx.SleepEfficiency, out double sleepEff) && sleepEff > 0)
+            {
+                // Sleep efficiency: 60% = poor (0), 95% = excellent (100)
+                double sleepScore = Math.Clamp((sleepEff - 60) / 35 * 100, 0, 100);
+                score += sleepScore * 0.25;
+                factors++;
+            }
+
+            if (spO2 != null && spO2.Percentage > 0)
+            {
+                // SpO2: 90% = poor (0), 99% = excellent (100)
+                double spo2Score = Math.Clamp((spO2.Percentage - 90) / 9 * 100, 0, 100);
+                score += spo2Score * 0.15;
+                factors++;
+            }
+
+            if (factors == 0) return 0;
+
+            // Normalize if not all factors present
+            double totalWeight = (factors >= 1 ? 0.35 : 0) + (factors >= 2 ? 0.25 : 0) + (factors >= 3 ? 0.25 : 0) + (factors >= 4 ? 0.15 : 0);
+            // Re-compute with actual available weights
+            return (int)Math.Round(Math.Clamp(score / totalWeight * 1.0, 0, 100));
+        }
+
+        private void ComputeTrends(HealthExportPayload hc, UserHealthContext ctx, DateTime targetDateIst)
+        {
+            var days = Enumerable.Range(0, 7).Select(i => targetDateIst.AddDays(-6 + i)).ToList();
+
+            // RHR trend
+            var rhrPoints = days.Select(day =>
+            {
+                var match = hc.RestingHeartRate
+                    .Where(r => TimeZoneInfo.ConvertTimeFromUtc(r.Time, _istZone).Date == day)
+                    .OrderByDescending(r => r.Time).FirstOrDefault();
+                return match?.Bpm ?? 0;
+            }).ToList();
+            ctx.RhrTrend = JsonSerializer.Serialize(rhrPoints);
+
+            // HRV trend
+            var hrvPoints = days.Select(day =>
+            {
+                var match = hc.HRV
+                    .Where(h => TimeZoneInfo.ConvertTimeFromUtc(h.Time, _istZone).Date == day)
+                    .OrderByDescending(h => h.Time).FirstOrDefault();
+                return match != null ? (int)Math.Round(match.Rmssd) : 0;
+            }).ToList();
+            ctx.HrvTrend = JsonSerializer.Serialize(hrvPoints);
+
+            // Steps trend
+            var stepsPoints = days.Select(day =>
+            {
+                var match = hc.Steps
+                    .Where(s => TimeZoneInfo.ConvertTimeFromUtc(s.EndTime, _istZone).Date == day)
+                    .OrderByDescending(s => s.EndTime).FirstOrDefault();
+                return match?.Count ?? 0;
+            }).ToList();
+            ctx.StepsTrend = JsonSerializer.Serialize(stepsPoints);
+
+            // Sleep trend (hours)
+            var sleepPoints = days.Select(day =>
+            {
+                var sleepStart = day.AddHours(-12);
+                var sleepEnd = day.AddHours(12);
+                var sessions = hc.Sleep.Where(s =>
+                {
+                    var ist = TimeZoneInfo.ConvertTimeFromUtc(s.SessionEndTime, _istZone);
+                    return ist >= sleepStart && ist < sleepEnd;
+                }).ToList();
+                int secs = sessions.SelectMany(s => s.Stages)
+                    .Where(st => st.Stage != "1" && st.Stage != "2")
+                    .Sum(st => st.DurationSeconds);
+                return Math.Round(secs / 3600.0, 1);
+            }).ToList();
+            ctx.SleepTrend = JsonSerializer.Serialize(sleepPoints);
+        }
+
+        private static int ComputeSleepScore(int totalSleepSecs, int deepSleepSecs, int totalTimeInBedSecs)
+        {
+            if (totalSleepSecs <= 0) return 0;
+
+            // Duration (40%): <5h (18000s) = 0, 8h (28800s) = 100
+            double durationScore = Math.Clamp((totalSleepSecs - 18000) / 10800.0 * 100, 0, 100);
+
+            // Deep sleep (30%): 0s = 0, ≥1.5h (5400s) = 100
+            double deepScore = Math.Clamp(deepSleepSecs / 5400.0 * 100, 0, 100);
+
+            // Efficiency (30%): 60% = 0, 95% = 100
+            double efficiencyScore = 0;
+            if (totalTimeInBedSecs > 0)
+            {
+                double eff = (double)totalSleepSecs / totalTimeInBedSecs * 100;
+                efficiencyScore = Math.Clamp((eff - 60) / 35 * 100, 0, 100);
+            }
+
+            return (int)Math.Round(durationScore * 0.40 + deepScore * 0.30 + efficiencyScore * 0.30);
+        }
+
+        private static int ComputeActiveScore(int steps, double activeCalories, int exerciseMinutes)
+        {
+            // Steps (40%): Target 10,000
+            double stepsScore = Math.Clamp(steps / 10000.0 * 100, 0, 100);
+
+            // Active calories (30%): Target 500 kcal
+            double calScore = Math.Clamp(activeCalories / 500.0 * 100, 0, 100);
+
+            // Exercise minutes (30%): Target 30 min/day
+            double exerciseScore = Math.Clamp(exerciseMinutes / 30.0 * 100, 0, 100);
+
+            return (int)Math.Round(stepsScore * 0.40 + calScore * 0.30 + exerciseScore * 0.30);
+        }
+
+        private void Compute15DayAverages(HealthExportPayload hc, UserHealthContext ctx, DateTime targetDateIst)
+        {
+            var days = Enumerable.Range(0, 15).Select(i => targetDateIst.AddDays(-14 + i)).ToList();
+
+            // 15-day average RHR
+            var rhrValues = days.Select(day => hc.RestingHeartRate
+                .Where(r => TimeZoneInfo.ConvertTimeFromUtc(r.Time, _istZone).Date == day)
+                .OrderByDescending(r => r.Time).FirstOrDefault()?.Bpm ?? 0)
+                .Where(v => v > 0).ToList();
+            if (rhrValues.Any())
+                ctx.AvgRhr15Day = Math.Round(rhrValues.Average()).ToString("0");
+
+            // 15-day average HRV
+            var hrvValues = days.Select(day => hc.HRV
+                .Where(h => TimeZoneInfo.ConvertTimeFromUtc(h.Time, _istZone).Date == day)
+                .OrderByDescending(h => h.Time).FirstOrDefault())
+                .Where(h => h != null).Select(h => h!.Rmssd).ToList();
+            if (hrvValues.Any())
+                ctx.AvgHrv15Day = Math.Round(hrvValues.Average()).ToString("0");
+
+            // 15-day average Steps
+            var stepsValues = days.Select(day => hc.Steps
+                .Where(s => TimeZoneInfo.ConvertTimeFromUtc(s.EndTime, _istZone).Date == day)
+                .OrderByDescending(s => s.EndTime).FirstOrDefault()?.Count ?? 0)
+                .Where(v => v > 0).ToList();
+            if (stepsValues.Any())
+                ctx.AvgSteps15Day = Math.Round(stepsValues.Average()).ToString("N0");
+
+            // 15-day average Sleep (hours)
+            var sleepValues = days.Select(day =>
+            {
+                var sleepStart = day.AddHours(-12);
+                var sleepEnd = day.AddHours(12);
+                var sessions = hc.Sleep.Where(s =>
+                {
+                    var ist = TimeZoneInfo.ConvertTimeFromUtc(s.SessionEndTime, _istZone);
+                    return ist >= sleepStart && ist < sleepEnd;
+                }).ToList();
+                int secs = sessions.SelectMany(s => s.Stages)
+                    .Where(st => st.Stage != "1" && st.Stage != "2")
+                    .Sum(st => st.DurationSeconds);
+                return Math.Round(secs / 3600.0, 1);
+            }).Where(v => v > 0).ToList();
+            if (sleepValues.Any())
+                ctx.AvgSleep15Day = Math.Round(sleepValues.Average(), 1).ToString("0.0") + "h";
         }
     }
 }

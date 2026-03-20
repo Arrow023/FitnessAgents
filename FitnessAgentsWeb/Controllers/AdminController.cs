@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace FitnessAgentsWeb.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public class AdminController : Controller
     {
         private readonly IStorageRepository _storageRepository;
@@ -23,6 +23,7 @@ namespace FitnessAgentsWeb.Controllers
 
         public async Task<IActionResult> Settings()
         {
+            ViewData["ActiveNav"] = "settings";
             return View(_appConfig);
         }
 
@@ -46,6 +47,7 @@ namespace FitnessAgentsWeb.Controllers
 
         public async Task<IActionResult> Users()
         {
+            ViewData["ActiveNav"] = "users";
             var users = await _storageRepository.GetAllUserProfilesAsync();
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
             ViewBag.BaseUrl = baseUrl;
@@ -55,6 +57,7 @@ namespace FitnessAgentsWeb.Controllers
         // Lists available log files (from Logs folder)
         public IActionResult Logs()
         {
+            ViewData["ActiveNav"] = "logs";
             var logsDir = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "Logs");
             if (!Directory.Exists(logsDir)) Directory.CreateDirectory(logsDir);
 
@@ -70,9 +73,13 @@ namespace FitnessAgentsWeb.Controllers
         public IActionResult LogFile(string name)
         {
             if (string.IsNullOrEmpty(name)) return BadRequest();
+            // Prevent path traversal
+            var safeName = Path.GetFileName(name);
             var logsDir = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "Logs");
-            var filePath = Path.Combine(logsDir, name);
-            if (!System.IO.File.Exists(filePath)) return NotFound();
+            var filePath = Path.Combine(logsDir, safeName);
+            var fullPath = Path.GetFullPath(filePath);
+            if (!fullPath.StartsWith(Path.GetFullPath(logsDir))) return BadRequest();
+            if (!System.IO.File.Exists(fullPath)) return NotFound();
 
             using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using (var reader = new StreamReader(stream))
