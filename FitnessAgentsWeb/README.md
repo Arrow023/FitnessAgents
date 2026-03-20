@@ -410,11 +410,43 @@ MetabolicHealth Metabolism    // BMR, Visceral Fat Level
 
 ### Priority Order
 
-1. **LocalSettingsProvider** — Reads from `appsettings.json` (if configured)
-2. **FirebaseSettingsProvider** — Reads from Firebase `config/app_settings` node (primary)
-3. **Environment Variables** — `FIREBASE_DATABASE_URL`, `FIREBASE_DATABASE_SECRET`
+1. **Environment Variables** — `FIREBASE_DATABASE_URL`, `FIREBASE_DATABASE_SECRET` (highest priority)
+2. **LocalSettingsProvider** — Reads from `appsettings.json` → `FirebaseSettings:DatabaseUrl` / `FirebaseSettings:DatabaseSecret`
+3. **FirebaseSettingsProvider** — Reads from Firebase `config/app_settings` node (primary for all other config)
 
-### Firebase Settings Keys
+### Firebase Database Secret
+
+The `FIREBASE_DATABASE_SECRET` is a **legacy auth token** that grants full admin access to the Realtime Database. Both `FirebaseSettingsProvider` and `FirebaseStorageRepository` pass it via `AuthTokenAsyncFactory` to authenticate all read/write operations.
+
+**How to obtain it:**
+
+1. Open the [Firebase Console](https://console.firebase.google.com/) → select your project
+2. Click the **gear icon** (⚙️) → **Project settings**
+3. Go to **Service accounts** tab
+4. Click **Database secrets** (bottom of the page, under Firebase Admin SDK)
+5. Click **Show** to reveal the secret, then **copy** it
+6. Provide it via environment variable or config:
+   ```bash
+   # Environment variable (preferred)
+   export FIREBASE_DATABASE_SECRET="your-secret-here"
+   ```
+   ```json
+   // Or in appsettings.json
+   {
+     "FirebaseSettings": {
+       "DatabaseUrl": "https://<your-project>-default-rtdb.asia-southeast1.firebasedatabase.app/",
+       "DatabaseSecret": "your-secret-here"
+     }
+   }
+   ```
+
+> **Security note:** Database secrets grant unrestricted access. Never commit them to source control. Use environment variables in production.
+
+### Firebase Security Rules
+
+The repository includes [`firebase-rules.json`](../firebase-rules.json) which enforces `auth != null` on all nodes. Apply these rules in **Firebase Console → Realtime Database → Rules → Publish** to block unauthenticated access.
+
+### Firebase Settings Keys (stored in `config/app_settings`)
 
 ```
 AiModel, AiEndpoint, AiKey           → LLM configuration
@@ -422,7 +454,7 @@ OcrModel, OcrEndpoint, OcrKey        → Vision model configuration
 SmtpHost, SmtpPort, FromEmail, SmtpPassword  → Email delivery
 AdminEmail, AdminPassword            → Master admin credentials
 AppTimezone                          → Global timezone (e.g., "India Standard Time")
-FirebaseDatabaseSecret               → Database auth token
+FirebaseDatabaseSecret               → Database auth token (also stored for backup)
 ```
 
 ---
