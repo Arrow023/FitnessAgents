@@ -9,8 +9,9 @@
     var recentEntries = ViewBag.RecentEntries as List<FitnessAgentsWeb.Models.DailyDiary> ?? new List<FitnessAgentsWeb.Models.DailyDiary>();
     var isToday = (bool)(ViewBag.IsToday ?? true);
     var workoutHtml = ViewBag.WorkoutHtml as string;
-    var workoutExercises = ViewBag.WorkoutExercises as List<string> ?? new List<string>();
+    var workoutPlan = ViewBag.WorkoutPlan as FitnessAgentsWeb.Models.WorkoutPlan;
     var dayName = ViewBag.DayName as string ?? "";
+    var hasWorkoutPlan = workoutPlan != null && (workoutPlan.Warmup.Count > 0 || workoutPlan.MainWorkout.Count > 0 || workoutPlan.Cooldown.Count > 0);
 
     // Build lookup of saved meals by MealTime for matching with recommended plan
     var savedMealsByType = Model.ActualMeals?
@@ -250,7 +251,7 @@
                 <input type="hidden" name="mealSubstitutions" id="mealSubstitutionsHidden" />
             </div>
 
-            <!-- Workout Section: Plan-Aware Logging -->
+            <!-- Workout Section: Structured Plan Logging -->
             <div class="card" style="margin-bottom: 1.25rem;">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
                     <h3 style="margin: 0; font-weight: 700;">
@@ -258,113 +259,137 @@
                         @if (!string.IsNullOrEmpty(dayName)) { <span style="font-size: 0.75rem; font-weight: 500; color: var(--text-secondary); margin-left: 0.25rem;">— @dayName</span> }
                     </h3>
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        @if (workoutExercises.Count > 0)
+                        @if (hasWorkoutPlan)
                         {
                             <button type="button" class="btn btn-sm" id="allCompleteBtn" onclick="markAllComplete()" style="font-size: 0.78rem; padding: 0.35rem 0.75rem; background: var(--accent-green); border-color: var(--accent-green);">
                                 <i class="fa-solid fa-check-double"></i> All Complete
+                            </button>
+                            <button type="button" class="btn btn-sm" id="didDifferentBtn" onclick="toggleDifferentWorkout()" style="font-size: 0.78rem; padding: 0.35rem 0.75rem; background: var(--accent-orange); border-color: var(--accent-orange);">
+                                <i class="fa-solid fa-shuffle"></i> Did Different
                             </button>
                         }
                         <button type="button" class="btn btn-outline btn-sm" onclick="addWorkoutRow()" style="font-size: 0.78rem;"><i class="fa-solid fa-plus"></i> Add Exercise</button>
                     </div>
                 </div>
 
-                @if (!string.IsNullOrEmpty(workoutHtml))
+                @if (hasWorkoutPlan)
                 {
-                    <!-- Collapsible Plan Preview -->
-                    <details class="workout-preview-details" style="margin-bottom: 1rem;">
-                        <summary style="cursor: pointer; display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; background: var(--primary-subtle); border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent); border-radius: 0.5rem; font-size: 0.82rem; font-weight: 600; color: var(--primary); user-select: none;">
-                            <i class="fa-solid fa-clipboard-list"></i> View Full Workout Plan
-                            <span style="font-size: 0.7rem; font-weight: 500; color: var(--text-secondary); margin-left: auto;">click to expand</span>
-                        </summary>
-                        <div style="padding: 0.75rem; border: 1px solid var(--border); border-top: none; border-radius: 0 0 0.5rem 0.5rem; background: var(--card-bg); max-height: 400px; overflow-y: auto; font-size: 0.85rem;">
-                            @Html.Raw(workoutHtml)
-                        </div>
-                    </details>
-
-                    @if (workoutExercises.Count > 0)
+                    <!-- Collapsible Full Plan Preview -->
+                    @if (!string.IsNullOrEmpty(workoutHtml))
                     {
+                        <details class="workout-preview-details" style="margin-bottom: 1rem;">
+                            <summary style="cursor: pointer; display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; background: var(--primary-subtle); border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent); border-radius: 0.5rem; font-size: 0.82rem; font-weight: 600; color: var(--primary); user-select: none;">
+                                <i class="fa-solid fa-clipboard-list"></i> View Full Workout Plan
+                                <span style="font-size: 0.7rem; font-weight: 500; color: var(--text-secondary); margin-left: auto;">click to expand</span>
+                            </summary>
+                            <div style="padding: 0.75rem; border: 1px solid var(--border); border-top: none; border-radius: 0 0 0.5rem 0.5rem; background: var(--card-bg); max-height: 400px; overflow-y: auto; font-size: 0.85rem;">
+                                @Html.Raw(workoutHtml)
+                            </div>
+                        </details>
+                    }
+
+                    <!-- Plan exercises (structured from JSON) -->
+                    <div id="planWorkoutSection">
+                        @{
+                            // Collect ALL exercises with section labels
+                            var planExerciseList = new List<(string Name, string Section, string Detail)>();
+                            foreach (var e in workoutPlan!.Warmup)
+                                planExerciseList.Add((e.Exercise, "Warmup", e.Instruction));
+                            foreach (var e in workoutPlan.MainWorkout)
+                                planExerciseList.Add((e.Exercise, "Main", $"{e.Sets} sets × {e.Reps}"));
+                            foreach (var e in workoutPlan.Cooldown)
+                                planExerciseList.Add((e.Exercise, "Cooldown", e.Duration));
+                        }
+
                         <!-- Column headers -->
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.35rem; padding: 0 0.25rem;">
                             <span style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); opacity: 0.7;">From Plan</span>
                             <span style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); opacity: 0.7;">How It Went</span>
                         </div>
 
-                        <div id="planWorkoutsContainer">
-                            @foreach (var exercise in workoutExercises)
-                            {
-                                var hasSaved = savedWorkoutsByName.TryGetValue(exercise, out var savedWo);
-                                var isDone = hasSaved && savedWo!.Completed;
-                                var feeling = hasSaved ? savedWo!.Feeling : "moderate";
+                        @foreach (var (name, section, detail) in planExerciseList)
+                        {
+                            var hasSaved = savedWorkoutsByName.TryGetValue(name, out var savedWo);
+                            var isDone = hasSaved && savedWo!.Completed;
+                            var feeling = hasSaved ? savedWo!.Feeling : "moderate";
 
-                                <div class="plan-workout-row @(isDone ? "state-done" : "")" data-exercise="@exercise"
-                                     style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; padding: 0.55rem 0.5rem; background: var(--card-bg); border-radius: 0.5rem; border: 1.5px solid var(--border); margin-bottom: 0.35rem; transition: border-color 0.2s, background 0.2s;">
+                            var sectionColor = section == "Warmup" ? "var(--accent-orange)" : section == "Main" ? "var(--primary)" : "var(--accent-green)";
+                            var sectionIcon = section == "Warmup" ? "fa-fire" : section == "Main" ? "fa-dumbbell" : "fa-wind";
 
-                                    <!-- Left: Exercise from plan -->
-                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                        <div style="width: 26px; height: 26px; border-radius: 0.35rem; background: color-mix(in srgb, var(--primary) 12%, transparent); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                            <i class="fa-solid fa-dumbbell" style="font-size: 0.65rem; color: var(--primary);"></i>
-                                        </div>
-                                        <span class="plan-exercise-name" style="font-size: 0.85rem; font-weight: 600; color: var(--text-primary); line-height: 1.3;">@exercise</span>
+                            <div class="plan-workout-row @(isDone ? "state-done" : "")" data-exercise="@name"
+                                 style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; padding: 0.5rem 0.45rem; background: var(--card-bg); border-radius: 0.5rem; border: 1.5px solid var(--border); margin-bottom: 0.3rem; transition: border-color 0.2s, background 0.2s;">
+
+                                <!-- Left: Exercise info from plan -->
+                                <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                                    <div style="width: 26px; height: 26px; border-radius: 0.35rem; background: color-mix(in srgb, @sectionColor 12%, transparent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 0.1rem;">
+                                        <i class="fa-solid @sectionIcon" style="font-size: 0.6rem; color: @sectionColor;"></i>
                                     </div>
-
-                                    <!-- Right: Status controls -->
-                                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                                        <label class="wo-done-toggle" style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.8rem; font-weight: 600; white-space: nowrap;">
-                                            <input type="checkbox" class="wo-plan-completed" @(isDone ? "checked" : "") onchange="toggleWorkoutDone(this)" />
-                                            <span class="wo-done-label">Done</span>
-                                        </label>
-                                        <select class="form-control wo-plan-feeling" style="font-size: 0.78rem; padding: 0.2rem 0.4rem; width: auto; min-width: 95px;">
-                                            @foreach (var f in new[] { "easy", "moderate", "hard", "skipped" })
-                                            {
-                                                <option value="@f" selected="@(feeling == f)">@(f[0].ToString().ToUpper() + f[1..])@(f == "skipped" ? " ❌" : "")</option>
-                                            }
-                                        </select>
+                                    <div style="min-width: 0;">
+                                        <span class="plan-exercise-name" style="font-size: 0.84rem; font-weight: 600; color: var(--text-primary); line-height: 1.3; display: block;">@name</span>
+                                        @if (!string.IsNullOrEmpty(detail))
+                                        {
+                                            <span style="font-size: 0.7rem; color: var(--text-secondary); opacity: 0.7;">@detail</span>
+                                        }
                                     </div>
                                 </div>
-                            }
-                        </div>
-                    }
+
+                                <!-- Right: Status controls -->
+                                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                    <label class="wo-done-toggle" style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.8rem; font-weight: 600; white-space: nowrap;">
+                                        <input type="checkbox" class="wo-plan-completed" @(isDone ? "checked" : "") onchange="toggleWorkoutDone(this)" />
+                                        <span class="wo-done-label">Done</span>
+                                    </label>
+                                    <select class="form-control wo-plan-feeling" style="font-size: 0.78rem; padding: 0.2rem 0.4rem; width: auto; min-width: 95px;">
+                                        @foreach (var f in new[] { "easy", "moderate", "hard", "skipped" })
+                                        {
+                                            <option value="@f" selected="@(feeling == f)">@(f[0].ToString().ToUpper() + f[1..])@(f == "skipped" ? " ❌" : "")</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                        }
+                    </div>
                 }
                 else
                 {
                     <div class="field-hint" style="margin-bottom: 1rem;">
                         <i class="fa-solid fa-circle-info"></i>
-                        <span>No workout plan found for @dayName. Log exercises manually below. Don't worry about sets/reps — just the exercise name.</span>
+                        <span>No workout plan found for @dayName. Log exercises manually below.</span>
                     </div>
                 }
 
-                <!-- Extra exercises (custom / manual) -->
-                <div id="workoutsContainer" style="margin-top: @(workoutExercises.Count > 0 ? "0.75rem" : "0");">
-                    @if (workoutExercises.Count > 0)
+                <!-- Manual / extra exercises (always visible) -->
+                <div id="workoutsContainer" style="margin-top: @(hasWorkoutPlan ? "0.75rem" : "0");">
+                    @{
+                        var allPlanNames = hasWorkoutPlan ? workoutPlan!.GetAllExerciseNames() : new List<string>();
+                        var extraWorkouts = Model.WorkoutLog?.Where(w => !allPlanNames.Contains(w.Exercise)).ToList()
+                            ?? new List<FitnessAgentsWeb.Models.DiaryWorkoutLog>();
+                    }
+                    @if (hasWorkoutPlan)
                     {
-                        <!-- Show saved workouts that don't match plan exercises -->
-                        @if (Model.WorkoutLog != null)
+                        @foreach (var w in extraWorkouts)
                         {
-                            @foreach (var w in Model.WorkoutLog.Where(w => !workoutExercises.Contains(w.Exercise)))
-                            {
-                                <div class="diary-workout-row" style="display: grid; grid-template-columns: 1fr 100px 100px auto; gap: 0.4rem; margin-bottom: 0.35rem; align-items: center;">
-                                    <input type="text" class="form-control wo-exercise" value="@w.Exercise" placeholder="Exercise name" style="font-size: 0.82rem;" />
-                                    <select class="form-control wo-feeling" style="font-size: 0.82rem;">
-                                        @foreach (var f in new[] { "easy", "moderate", "hard", "skipped" })
-                                        {
-                                            <option value="@f" selected="@(w.Feeling == f)">@(f[0].ToString().ToUpper() + f[1..])@(f == "skipped" ? " ❌" : "")</option>
-                                        }
-                                    </select>
-                                    <label style="display: flex; align-items: center; gap: 0.3rem; font-size: 0.8rem; cursor: pointer;">
-                                        <input type="checkbox" class="wo-completed" @(w.Completed ? "checked" : "") /> Done
-                                    </label>
-                                    <button type="button" class="btn btn-outline btn-sm" onclick="this.closest('.diary-workout-row').remove()" title="Remove" style="padding: 0.25rem 0.45rem;"><i class="fa-solid fa-xmark" style="color: var(--accent-red);"></i></button>
-                                </div>
-                            }
+                            <div class="diary-workout-row" style="display: grid; grid-template-columns: 1fr 100px 100px auto; gap: 0.4rem; margin-bottom: 0.35rem; align-items: center;">
+                                <input type="text" class="form-control wo-exercise" value="@w.Exercise" placeholder="Exercise name" style="font-size: 0.82rem;" />
+                                <select class="form-control wo-feeling" style="font-size: 0.82rem;">
+                                    @foreach (var f in new[] { "easy", "moderate", "hard", "skipped" })
+                                    {
+                                        <option value="@f" selected="@(w.Feeling == f)">@(f[0].ToString().ToUpper() + f[1..])@(f == "skipped" ? " ❌" : "")</option>
+                                    }
+                                </select>
+                                <label style="display: flex; align-items: center; gap: 0.3rem; font-size: 0.8rem; cursor: pointer;">
+                                    <input type="checkbox" class="wo-completed" @(w.Completed ? "checked" : "") /> Done
+                                </label>
+                                <button type="button" class="btn btn-outline btn-sm" onclick="this.closest('.diary-workout-row').remove()" title="Remove" style="padding: 0.25rem 0.45rem;"><i class="fa-solid fa-xmark" style="color: var(--accent-red);"></i></button>
+                            </div>
                         }
                     }
                     else
                     {
                         @if (Model.WorkoutLog?.Count > 0)
                         {
-                            @for (int i = 0; i < Model.WorkoutLog.Count; i++)
+                            @foreach (var w in Model.WorkoutLog)
                             {
-                                var w = Model.WorkoutLog[i];
                                 <div class="diary-workout-row" style="display: grid; grid-template-columns: 1fr 100px 100px auto; gap: 0.4rem; margin-bottom: 0.35rem; align-items: center;">
                                     <input type="text" class="form-control wo-exercise" value="@w.Exercise" placeholder="Exercise name" style="font-size: 0.82rem;" />
                                     <select class="form-control wo-feeling" style="font-size: 0.82rem;">
@@ -646,6 +671,16 @@
                 toggleWorkoutDone(cb);
             }
         });
+    }
+
+    function toggleDifferentWorkout() {
+        // Hide the plan section and add manual rows instead
+        const planSection = document.getElementById('planWorkoutSection');
+        if (planSection) planSection.style.display = planSection.style.display === 'none' ? '' : 'none';
+        const container = document.getElementById('workoutsContainer');
+        if (container && container.children.length === 0) {
+            addWorkoutRow();
+        }
     }
 
     function addWorkoutRow() {

@@ -97,7 +97,7 @@ namespace FitnessAgentsWeb.Core.Services
                 var snapshot = await _firebaseClient
                     .Child("users")
                     .Child(userId)
-                    .Child("weekly_history")
+                    .Child("weekly_workout_history")
                     .OnceSingleAsync<WeeklyWorkoutHistory>();
                 
                 if (snapshot != null && snapshot.WeekStartDate == currentWeekSunday)
@@ -121,7 +121,7 @@ namespace FitnessAgentsWeb.Core.Services
                 await _firebaseClient
                     .Child("users")
                     .Child(userId)
-                    .Child("weekly_history")
+                    .Child("weekly_workout_history")
                     .PutAsync(history);
             }
             catch (Exception ex)

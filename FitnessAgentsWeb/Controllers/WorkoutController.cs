@@ -1,8 +1,11 @@
 using FitnessAgentsWeb.Core.Helpers;
 using FitnessAgentsWeb.Core.Interfaces;
+using FitnessAgentsWeb.Models;
 using FitnessAgentsWeb.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
+using System.Threading.Channels;
 
 namespace FitnessAgentsWeb.Controllers;
 
@@ -13,17 +16,23 @@ public class WorkoutController : Controller
     private readonly IAiOrchestratorService _orchestrator;
     private readonly INotificationService _notificationService;
     private readonly IHealthDataProcessor _healthDataProcessor;
+    private readonly IPlanGenerationTracker _tracker;
+    private readonly Channel<PlanGenerationJob> _jobChannel;
 
     public WorkoutController(
         IStorageRepository storageRepository,
         IAiOrchestratorService orchestrator,
         INotificationService notificationService,
-        IHealthDataProcessor healthDataProcessor)
+        IHealthDataProcessor healthDataProcessor,
+        IPlanGenerationTracker tracker,
+        Channel<PlanGenerationJob> jobChannel)
     {
         _storageRepository = storageRepository;
         _orchestrator = orchestrator;
         _notificationService = notificationService;
         _healthDataProcessor = healthDataProcessor;
+        _tracker = tracker;
+        _jobChannel = jobChannel;
     }
 
     public async Task<IActionResult> Index(string? userId = null)
@@ -75,12 +84,69 @@ public class WorkoutController : Controller
         return View(model);
     }
 
+    /// <summary>
+    /// Enqueues an async plan generation job and returns the job ID immediately.
+    /// </summary>
     [HttpPost]
     public async Task<IActionResult> Generate(string userId)
     {
         userId = ResolveUserId(userId);
-        await _orchestrator.ProcessAndGenerateAsync(userId, null, sendEmail: false);
-        return RedirectToAction("Index", new { userId });
+
+        var jobId = _tracker.Enqueue(userId);
+        if (jobId is null)
+        {
+            return Json(new { error = "A plan is already being generated. Please wait." });
+        }
+
+        var job = new PlanGenerationJob { JobId = jobId, UserId = userId };
+        await _jobChannel.Writer.WriteAsync(job);
+
+        return Json(new { jobId });
+    }
+
+    /// <summary>
+    /// Server-Sent Events endpoint that streams real-time job progress to the browser.
+    /// </summary>
+    [HttpGet]
+    public async Task GenerateStatus(string jobId, CancellationToken ct)
+    {
+        Response.ContentType = "text/event-stream";
+        Response.Headers.CacheControl = "no-cache";
+        Response.Headers.Connection = "keep-alive";
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+        };
+
+        while (!ct.IsCancellationRequested)
+        {
+            var job = _tracker.GetJob(jobId);
+            if (job is null)
+            {
+                await Response.WriteAsync($"data: {{\"status\":\"Failed\",\"currentStep\":\"Job not found\"}}\n\n", ct);
+                await Response.Body.FlushAsync(ct);
+                break;
+            }
+
+            var payload = JsonSerializer.Serialize(new
+            {
+                job.Status,
+                job.CurrentStep,
+                job.ErrorMessage
+            }, jsonOptions);
+
+            await Response.WriteAsync($"data: {payload}\n\n", ct);
+            await Response.Body.FlushAsync(ct);
+
+            if (job.Status is PlanGenerationStatus.Completed or PlanGenerationStatus.Failed)
+            {
+                break;
+            }
+
+            await Task.Delay(800, ct);
+        }
     }
 
     [HttpPost]

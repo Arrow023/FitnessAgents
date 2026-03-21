@@ -67,7 +67,7 @@ namespace FitnessAgentsWeb.Core.Services
             }
         }
 
-        public async Task<bool> ProcessAndGenerateAsync(string userId, HealthExportPayload? newPayload = null, bool sendEmail = true)
+        public async Task<bool> ProcessAndGenerateAsync(string userId, HealthExportPayload? newPayload = null, bool sendEmail = true, IProgress<(PlanGenerationStatus Status, string Step)>? progress = null)
         {
             try
             {
@@ -75,6 +75,8 @@ namespace FitnessAgentsWeb.Core.Services
                 var healthProcessor = _processorFactory.Create();
                 var aiAgent = _aiFactory.Create();
                 var notifier = _notificationFactory.Create();
+
+                progress?.Report((PlanGenerationStatus.LoadingHealthData, "Loading health data..."));
 
                 HealthExportPayload? finalPayloadToProcess = newPayload;
 
@@ -106,6 +108,8 @@ namespace FitnessAgentsWeb.Core.Services
                 string dietSimilarContext = "";
                 string dietFeedbackContext = "";
                 string digestContext = "";
+
+                progress?.Report((PlanGenerationStatus.QueryingHistory, "Querying historical plans & feedback..."));
 
                 if (_vectorStore is not null && _embeddingService is not null)
                 {
@@ -154,12 +158,15 @@ namespace FitnessAgentsWeb.Core.Services
                 }
 
                 // Run the AI Agent (Workout)
+                progress?.Report((PlanGenerationStatus.GeneratingWorkout, "Generating workout plan..."));
                 string workoutJsonString = await aiAgent.GenerateWorkoutAsync(userContext, workoutSimilarContext, workoutFeedbackContext, digestContext);
 
                 // Run the AI Dietician (Nutrition - JSON)
+                progress?.Report((PlanGenerationStatus.GeneratingDiet, "Generating nutrition plan..."));
                 string dietJsonString = await aiAgent.GenerateRecoveryDietJsonAsync(workoutJsonString, userContext, dietSimilarContext, dietFeedbackContext, digestContext);
 
                 // Post-generation validation: check for excluded foods
+                progress?.Report((PlanGenerationStatus.ValidatingDiet, "Validating nutrition plan..."));
                 if (userContext.ExcludedFoods.Count > 0 && !string.IsNullOrEmpty(dietJsonString) && dietJsonString != "{}")
                 {
                     var violations = userContext.ExcludedFoods
@@ -205,6 +212,7 @@ namespace FitnessAgentsWeb.Core.Services
 
                 // Format Workout JSON to Markdown
                 string workoutMarkdown = "";
+                WorkoutPlan? workoutPlan = null;
                 if (!string.IsNullOrEmpty(workoutJsonString) && workoutJsonString != "{}")
                 {
                     try
@@ -217,15 +225,29 @@ namespace FitnessAgentsWeb.Core.Services
                         _logger.LogError(ex, "[AiOrchestrator] Workout JSON Formatting Failed");
                         workoutMarkdown = "# Workout Plan\n\n*Your plan was generated but could not be formatted. Please try generating again.*";
                     }
+
+                    // Deserialize to typed model separately — failure here must not break markdown
+                    try
+                    {
+                        workoutPlan = JsonSerializer.Deserialize<WorkoutPlan>(workoutJsonString);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "[AiOrchestrator] WorkoutPlan deserialization failed — diary will use manual entry fallback");
+                    }
                 }
 
                 string finalMarkdown = workoutMarkdown + "\n\n---\n\n" + dietMarkdown;
+
+                progress?.Report((PlanGenerationStatus.SavingPlans, "Saving plans..."));
 
                 // Save to History (Workout & Diet)
                 var weeklyHistory = await storageRepo.GetWeeklyHistoryAsync(userId) ?? new WeeklyWorkoutHistory();
                 var weeklyDietHistory = await storageRepo.GetWeeklyDietHistoryAsync(userId) ?? new WeeklyDietHistory();
 
                 weeklyHistory.PastWorkouts[todayString] = finalMarkdown;
+                if (workoutPlan != null)
+                    weeklyHistory.PastWorkoutPlans[todayString] = workoutPlan;
                 await storageRepo.SaveWeeklyHistoryAsync(userId, weeklyHistory);
 
                 if (dietPlan != null)
@@ -311,6 +333,7 @@ namespace FitnessAgentsWeb.Core.Services
                 // Send the Email (Combined)
                 if (sendEmail)
                 {
+                    progress?.Report((PlanGenerationStatus.SendingNotification, "Sending email notification..."));
                     if (!string.IsNullOrEmpty(userContext.Email))
                     {
                         await notifier.SendWorkoutNotificationAsync(userContext.Email, finalMarkdown, userContext);

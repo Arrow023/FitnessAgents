@@ -197,6 +197,7 @@ public record WeeklyWorkoutHistory
 {
     [JsonPropertyName("week_start_date")] public DateTime WeekStartDate { get; set; }
     [JsonPropertyName("past_workouts")] public Dictionary<string, string> PastWorkouts { get; set; } = new();
+    [JsonPropertyName("past_workout_plans")] public Dictionary<string, WorkoutPlan> PastWorkoutPlans { get; set; } = new();
 }
 
 public record WeeklyDietHistory

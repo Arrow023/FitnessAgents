@@ -4,6 +4,8 @@ using FitnessAgentsWeb.Core.Factories;
 using FitnessAgentsWeb.Core.Interfaces;
 using FitnessAgentsWeb.Core.Services;
 using FitnessAgentsWeb.Core.Configuration;
+using FitnessAgentsWeb.Models;
+using System.Threading.Channels;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,6 +66,14 @@ builder.Services.AddSingleton<IAiOrchestratorService, AiOrchestratorService>();
 // Vector store and embedding services (optional — gracefully degrade if Qdrant is unreachable)
 builder.Services.AddSingleton<IEmbeddingService, EmbeddingService>();
 builder.Services.AddSingleton<IPlanVectorStore, QdrantPlanVectorStore>();
+
+// Async plan generation infrastructure
+builder.Services.AddSingleton<IPlanGenerationTracker, PlanGenerationTracker>();
+builder.Services.AddSingleton(Channel.CreateBounded<PlanGenerationJob>(new BoundedChannelOptions(10)
+{
+    FullMode = BoundedChannelFullMode.Wait
+}));
+builder.Services.AddHostedService<PlanGenerationBackgroundService>();
 
 // Register Background Service
 builder.Services.AddHostedService<WorkoutEmailSchedulerService>();

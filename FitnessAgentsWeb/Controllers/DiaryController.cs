@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using FitnessAgentsWeb.Core.Helpers;
 using FitnessAgentsWeb.Core.Configuration;
 using FitnessAgentsWeb.Core.Interfaces;
@@ -45,17 +44,28 @@ public class DiaryController : Controller
         // Load diet plan only for today
         var todayDiet = isToday ? await _storageRepository.GetLatestDietAsync(userId) : null;
 
-        // Load workout plan for the selected date's day of week
+        // Load workout plan for the selected date's day of week (structured JSON)
         var selectedDt = DateTime.TryParse(selectedDate, out var sdp) ? sdp : appNow;
         var dayName = selectedDt.DayOfWeek.ToString();
+        WorkoutPlan? workoutPlan = null;
         string? workoutHtml = null;
-        var workoutExercises = new List<string>();
 
         var workoutHistory = await _storageRepository.GetWeeklyHistoryAsync(userId);
-        if (workoutHistory?.PastWorkouts != null && workoutHistory.PastWorkouts.TryGetValue(dayName, out var workoutMd))
+        if (workoutHistory != null)
         {
-            workoutHtml = MarkdownStylingHelper.RenderToEmailHtml(workoutMd);
-            workoutExercises = ExtractExerciseNames(workoutMd);
+            // Prefer structured plan; fall back to markdown rendering for old data
+            if (workoutHistory.PastWorkoutPlans.TryGetValue(dayName, out var plan))
+            {
+                workoutPlan = plan;
+            }
+
+            if (workoutHistory.PastWorkouts.TryGetValue(dayName, out var workoutMd))
+            {
+                // Strip diet portion for display (everything after ---\n)
+                var sepIdx = workoutMd.IndexOf("\n---\n", StringComparison.Ordinal);
+                var cleanMd = sepIdx > 0 ? workoutMd[..sepIdx] : workoutMd;
+                workoutHtml = MarkdownStylingHelper.RenderToEmailHtml(cleanMd);
+            }
         }
 
         ViewBag.TodayDate = selectedDate;
@@ -67,7 +77,7 @@ public class DiaryController : Controller
         ViewBag.TodayDiet = todayDiet;
         ViewBag.RecentEntries = recentEntries;
         ViewBag.WorkoutHtml = workoutHtml;
-        ViewBag.WorkoutExercises = workoutExercises;
+        ViewBag.WorkoutPlan = workoutPlan;
         ViewBag.DayName = dayName;
 
         return View(entry ?? new DailyDiary { Date = selectedDate });
@@ -185,79 +195,6 @@ public class DiaryController : Controller
             });
         }
         return logs;
-    }
-
-    private static List<string> ExtractExerciseNames(string markdown)
-    {
-        var exercises = new List<string>();
-        if (string.IsNullOrEmpty(markdown)) return exercises;
-
-        // The stored markdown is "workout\n\n---\n\nDiet Recommended: ..."
-        // Only parse the workout portion (everything before the diet section)
-        var separatorIdx = markdown.IndexOf("\n---\n", StringComparison.Ordinal);
-        if (separatorIdx > 0)
-            markdown = markdown[..separatorIdx];
-
-        foreach (var line in markdown.Split('\n'))
-        {
-            var trimmed = line.Trim();
-
-            // Skip table rows (main_workout is in a markdown table: | Exercise | Sets | ... |)
-            if (trimmed.StartsWith('|'))
-            {
-                // Table data row (not header/separator)
-                if (!trimmed.Contains("---") && !trimmed.Contains("Exercise"))
-                {
-                    var cells = trimmed.Split('|', StringSplitOptions.RemoveEmptyEntries);
-                    if (cells.Length > 0)
-                    {
-                        var name = cells[0].Trim();
-                        if (IsValidExerciseName(name)) exercises.Add(name);
-                    }
-                }
-                continue;
-            }
-
-            // List items with bold: - **Name**: details (warmup/cooldown)
-            var match = Regex.Match(trimmed, @"^[-*]\s+\*\*(.+?)\*\*");
-            if (match.Success)
-            {
-                var name = Regex.Replace(match.Groups[1].Value.Trim(), @"^\d+\.\s*", "");
-                if (IsValidExerciseName(name)) exercises.Add(name);
-                continue;
-            }
-
-            // Standalone bold text: **Exercise Name**
-            match = Regex.Match(trimmed, @"^\*\*(.+?)\*\*$");
-            if (match.Success)
-            {
-                var name = Regex.Replace(match.Groups[1].Value.Trim(), @"^\d+\.\s*", "");
-                if (IsValidExerciseName(name)) exercises.Add(name);
-            }
-        }
-
-        return exercises.Distinct().ToList();
-    }
-
-    private static bool IsValidExerciseName(string name)
-    {
-        if (string.IsNullOrWhiteSpace(name) || name.Length < 3 || name.Length > 80) return false;
-        var lower = name.ToLower();
-        string[] blocklist = {
-            // Section headers
-            "warm-up", "warmup", "warm up", "cool down", "cooldown", "cool-down",
-            "stretching", "workout plan", "notes", "summary", "rest day",
-            "main workout", "exercise plan", "today's workout", "recovery", "important",
-            // Coach signature / meta
-            "coach notes", "coach", "apex", "your ai", "stay strong",
-            "biomechanics", "specialist", "personalized",
-            // Diet-related (should be stripped by separator, but belt-and-suspenders)
-            "morning", "lunch", "evening", "dinner", "snack", "pre-bed snack",
-            "breakfast", "hydration", "hydration & extras", "diet recommended",
-            // Generic
-            "exercise", "sets", "reps", "rest", "date"
-        };
-        return !blocklist.Any(h => lower == h || lower.StartsWith(h + ":") || lower.StartsWith(h + " -") || lower.StartsWith(h + " ("));
     }
 
     private string ResolveUserId(string? userId)

@@ -23,7 +23,7 @@ namespace FitnessAgentsWeb.Core.Services
             Directory.CreateDirectory(_appDataFolder);
 
             _healthFilePath = Path.Combine(_appDataFolder, "health_connect_today.json");
-            _historyFilePath = Path.Combine(_appDataFolder, "weekly_history.json");
+            _historyFilePath = Path.Combine(_appDataFolder, "weekly_workout_history.json");
 
             try { _istZone = TimeZoneInfo.FindSystemTimeZoneById("India Standard Time"); }
             catch
@@ -56,7 +56,7 @@ namespace FitnessAgentsWeb.Core.Services
             DateTime currentWeekSunday = nowIst.AddDays(-1 * diff).Date;
 
             WeeklyWorkoutHistory history = new() { WeekStartDate = currentWeekSunday };
-            string path = Path.Combine(_appDataFolder, $"weekly_history_{userId}.json");
+            string path = Path.Combine(_appDataFolder, $"weekly_workout_history_{userId}.json");
 
             if (File.Exists(path))
             {
@@ -78,7 +78,7 @@ namespace FitnessAgentsWeb.Core.Services
 
         public async Task SaveWeeklyHistoryAsync(string userId, WeeklyWorkoutHistory history)
         {
-            string path = Path.Combine(_appDataFolder, $"weekly_history_{userId}.json");
+            string path = Path.Combine(_appDataFolder, $"weekly_workout_history_{userId}.json");
             string json = JsonSerializer.Serialize(history, new JsonSerializerOptions { WriteIndented = true });
             await File.WriteAllTextAsync(path, json);
         }

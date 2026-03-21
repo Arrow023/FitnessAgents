@@ -9,14 +9,67 @@
             <h1 class="page-title">Workout Plans</h1>
             <p class="page-subtitle">Weekly AI-orchestrated training history.</p>
         </div>
-        <form method="post" asp-controller="Workout" asp-action="Generate">
-            <input type="hidden" name="userId" value="@Model.UserId" />
-            <button type="submit" class="btn">
-                <i class="fa-solid fa-bolt"></i> Generate New Plan
-            </button>
-        </form>
+        <button type="button" id="generateBtn" class="btn" onclick="generatePlan('@Model.UserId')">
+            <i class="fa-solid fa-bolt"></i> Generate New Plan
+        </button>
     </div>
 </div>
+
+@* ── Progress Modal ── *@
+<div id="genModal" class="modal-overlay">
+    <div class="modal-panel" style="max-width: 440px; text-align: center;">
+        <div class="modal-body" style="padding: 2.5rem 2rem;">
+            <div id="genSpinner" style="margin-bottom: 1.5rem;">
+                <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; color: var(--primary);"></i>
+            </div>
+            <div id="genIconDone" style="display:none; margin-bottom: 1.5rem;">
+                <i class="fa-solid fa-circle-check" style="font-size: 2.5rem; color: var(--accent-green);"></i>
+            </div>
+            <div id="genIconFail" style="display:none; margin-bottom: 1.5rem;">
+                <i class="fa-solid fa-circle-xmark" style="font-size: 2.5rem; color: var(--accent-red);"></i>
+            </div>
+            <h2 id="genTitle" style="margin: 0 0 0.5rem; font-size: 1.25rem; font-weight: 700;">Generating Plan</h2>
+            <p id="genStep" style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">Queued&hellip;</p>
+
+            @* ── Step Progress Dots ── *@
+            <div id="genSteps" style="display: flex; gap: 0.4rem; justify-content: center; margin-top: 1.25rem;">
+                <span class="gen-dot" data-step="LoadingHealthData" title="Loading health data"></span>
+                <span class="gen-dot" data-step="QueryingHistory" title="Querying history"></span>
+                <span class="gen-dot" data-step="GeneratingWorkout" title="Generating workout"></span>
+                <span class="gen-dot" data-step="GeneratingDiet" title="Generating diet"></span>
+                <span class="gen-dot" data-step="ValidatingDiet" title="Validating diet"></span>
+                <span class="gen-dot" data-step="SavingPlans" title="Saving plans"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ── Toast Container ── *@
+<div id="toastContainer" style="position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 1100; display: flex; flex-direction: column; gap: 0.5rem;"></div>
+
+<style>
+    .gen-dot {
+        width: 10px; height: 10px; border-radius: 50%;
+        background: var(--border);
+        transition: background 0.3s, box-shadow 0.3s;
+    }
+    .gen-dot.active {
+        background: var(--primary);
+        box-shadow: 0 0 8px var(--primary-glow);
+        animation: dotPulse 1s ease-in-out infinite;
+    }
+    .gen-dot.done { background: var(--accent-green); box-shadow: none; animation: none; }
+    @@keyframes dotPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.4); } }
+    .toast-msg {
+        padding: 0.75rem 1.25rem; border-radius: var(--radius-lg);
+        color: #fff; font-size: 0.875rem; font-weight: 600;
+        box-shadow: var(--shadow-lg); animation: toastIn 0.3s ease;
+        display: flex; align-items: center; gap: 0.5rem;
+    }
+    .toast-success { background: var(--accent-green); }
+    .toast-error   { background: var(--accent-red); }
+    @@keyframes toastIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+</style>
 
 @if (Model.WeeklyHistory is not null && Model.WeeklyHistory.PastWorkouts.Count > 0)
 {
@@ -70,4 +123,118 @@ else
         <div class="empty-state-title">No workouts yet this week</div>
         <div class="empty-state-text">Generate your first AI workout plan or wait for your scheduled notification.</div>
     </div>
+}
+
+@section Scripts {
+<script>
+    // Ordered pipeline steps for dot progress tracking
+    const STEPS = ['LoadingHealthData', 'QueryingHistory', 'GeneratingWorkout', 'GeneratingDiet', 'ValidatingDiet', 'SavingPlans'];
+
+    async function generatePlan(userId) {
+        const btn = document.getElementById('generateBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Starting...';
+
+        resetModal();
+        document.getElementById('genModal').classList.add('open');
+
+        try {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            const res = await fetch('/Workout/Generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'userId=' + encodeURIComponent(userId) +
+                      (token ? '&__RequestVerificationToken=' + encodeURIComponent(token) : '')
+            });
+
+            const data = await res.json();
+            if (data.error) {
+                showResult('fail', data.error);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-bolt"></i> Generate New Plan';
+                return;
+            }
+
+            // Connect to SSE for real-time progress
+            const evtSource = new EventSource('/Workout/GenerateStatus?jobId=' + encodeURIComponent(data.jobId));
+
+            evtSource.onmessage = function(e) {
+                const job = JSON.parse(e.data);
+                updateProgress(job.status, job.currentStep);
+
+                if (job.status === 'Completed') {
+                    evtSource.close();
+                    showResult('success', 'Plan generated successfully!');
+                    showToast('Plan generated!', 'success');
+                    location.reload();
+                } else if (job.status === 'Failed') {
+                    evtSource.close();
+                    showResult('fail', job.errorMessage || 'Generation failed');
+                    showToast('Generation failed', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-bolt"></i> Generate New Plan';
+                }
+            };
+
+            evtSource.onerror = function() {
+                evtSource.close();
+                showResult('fail', 'Connection lost. The plan may still be generating — try refreshing.');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-bolt"></i> Generate New Plan';
+            };
+        } catch (err) {
+            showResult('fail', 'Network error: ' + err.message);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-bolt"></i> Generate New Plan';
+        }
+    }
+
+    function resetModal() {
+        document.getElementById('genSpinner').style.display = '';
+        document.getElementById('genIconDone').style.display = 'none';
+        document.getElementById('genIconFail').style.display = 'none';
+        document.getElementById('genTitle').textContent = 'Generating Plan';
+        document.getElementById('genStep').textContent = 'Queued\u2026';
+        document.querySelectorAll('.gen-dot').forEach(d => { d.className = 'gen-dot'; });
+    }
+
+    function updateProgress(status, stepText) {
+        document.getElementById('genStep').textContent = stepText;
+
+        const idx = STEPS.indexOf(status);
+        document.querySelectorAll('.gen-dot').forEach((dot, i) => {
+            if (i < idx) { dot.className = 'gen-dot done'; }
+            else if (i === idx) { dot.className = 'gen-dot active'; }
+            else { dot.className = 'gen-dot'; }
+        });
+    }
+
+    function showResult(type, message) {
+        document.getElementById('genSpinner').style.display = 'none';
+        if (type === 'success') {
+            document.getElementById('genIconDone').style.display = '';
+            document.getElementById('genTitle').textContent = 'Plan Ready!';
+            document.querySelectorAll('.gen-dot').forEach(d => { d.className = 'gen-dot done'; });
+        } else {
+            document.getElementById('genIconFail').style.display = '';
+            document.getElementById('genTitle').textContent = 'Generation Failed';
+        }
+        document.getElementById('genStep').textContent = message;
+
+        // Auto-close modal on failure after 4 seconds
+        if (type === 'fail') {
+            setTimeout(() => { document.getElementById('genModal').classList.remove('open'); }, 4000);
+        }
+    }
+
+    function showToast(msg, type) {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = 'toast-msg toast-' + type;
+        const icon = type === 'success' ? 'fa-circle-check' : 'fa-circle-xmark';
+        toast.innerHTML = '<i class="fa-solid ' + icon + '"></i> ' + msg;
+        container.appendChild(toast);
+        setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3500);
+    }
+</script>
 }
