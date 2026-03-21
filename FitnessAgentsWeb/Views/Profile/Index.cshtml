@@ -187,11 +187,16 @@
     <p style="color: var(--text-secondary); margin: 0 0 1rem; font-size: 0.9rem;">Upload an InBody scan image. Our AI will extract your body composition metrics automatically using OCR.</p>
     <form method="post" asp-controller="Profile" asp-action="UploadInBody" enctype="multipart/form-data">
         <input type="hidden" name="userId" value="@Model.UserId" />
-        <div style="display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap;">
-            <div class="form-group" style="flex: 1; min-width: 250px; margin: 0;">
-                <input type="file" name="inBodyImage" accept="image/*" class="form-control" required />
-            </div>
-            <button type="submit" class="btn btn-outline">
+        <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            <label for="inBodyFileInput" class="inbody-file-label">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <span id="inBodyFileName">Choose a scan image…</span>
+            </label>
+            <input type="file" id="inBodyFileInput" name="inBodyImage" accept="image/*" required
+                   style="display: none;"
+                   onchange="handleInBodyFileChange(this)" />
+            <button type="submit" id="inBodySubmitBtn" class="btn btn-outline" disabled
+                    style="opacity: 0.45; pointer-events: none; transition: opacity 0.25s, pointer-events 0s;">
                 <i class="fa-solid fa-upload"></i> Analyse Scan
             </button>
         </div>
@@ -200,6 +205,37 @@
 
 @section Scripts {
 <style>
+    /* InBody file picker */
+    .inbody-file-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        padding: 0.55rem 1.1rem;
+        border: 1.5px dashed var(--border);
+        border-radius: var(--radius, 0.5rem);
+        background: var(--card-bg, #fff);
+        color: var(--text-secondary);
+        font-size: 0.88rem;
+        cursor: pointer;
+        transition: border-color 0.2s, color 0.2s, background 0.2s, box-shadow 0.2s;
+        flex: 1;
+        min-width: 220px;
+    }
+    .inbody-file-label:hover {
+        border-color: var(--accent-pink);
+        color: var(--accent-pink);
+        background: var(--accent-pink-bg, rgba(236, 72, 153, 0.06));
+        box-shadow: 0 0 12px rgba(236, 72, 153, 0.10);
+    }
+    .inbody-file-label i {
+        font-size: 1.05rem;
+    }
+    .inbody-file-label.has-file {
+        border-style: solid;
+        border-color: var(--accent-pink);
+        color: var(--text);
+        background: var(--accent-pink-bg, rgba(236, 72, 153, 0.06));
+    }
     .tag-input-wrapper {
         display: flex;
         flex-wrap: wrap;
@@ -260,6 +296,25 @@
     }
 </style>
 <script>
+    function handleInBodyFileChange(input) {
+        const label = document.querySelector('.inbody-file-label');
+        const nameSpan = document.getElementById('inBodyFileName');
+        const btn = document.getElementById('inBodySubmitBtn');
+        if (input.files && input.files.length > 0) {
+            nameSpan.textContent = input.files[0].name;
+            label.classList.add('has-file');
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'auto';
+        } else {
+            nameSpan.textContent = 'Choose a scan image…';
+            label.classList.remove('has-file');
+            btn.disabled = true;
+            btn.style.opacity = '0.45';
+            btn.style.pointerEvents = 'none';
+        }
+    }
+
     function initTagInput(inputId, hiddenId, pillsId, type) {
         const input = document.getElementById(inputId);
         const hidden = document.getElementById(hiddenId);

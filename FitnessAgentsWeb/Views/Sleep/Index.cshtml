@@ -1,0 +1,378 @@
+@model SleepViewModel
+@{
+    ViewData["Title"] = "Sleep Analysis";
+    var scoreColor = Model.SleepScore >= 80 ? "#10b981" : Model.SleepScore >= 60 ? "#f97316" : "#ef4444";
+    var circumference = 2 * Math.PI * 54;
+    var scoreOffset = circumference - (circumference * Model.SleepScore / 100.0);
+}
+
+<link rel="stylesheet" href="~/css/sleep.css" />
+
+<div class="page-header fade-up">
+    <h1 class="page-title"><i class="fa-solid fa-moon" style="color:var(--accent-purple);margin-right:0.5rem;"></i>Sleep Analysis</h1>
+    <p class="page-subtitle">Detailed breakdown for @Model.Date</p>
+</div>
+
+<!-- ══════ SLEEP SCORE HERO ══════ -->
+<div class="sleep-hero fade-up">
+    <div class="sleep-score-ring-wrap">
+        <svg class="sleep-score-svg" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="7" />
+            <circle cx="60" cy="60" r="54" fill="none" stroke="@scoreColor" stroke-width="7"
+                    stroke-dasharray="@circumference.ToString("0.00")" stroke-dashoffset="@scoreOffset.ToString("0.00")"
+                    stroke-linecap="round" transform="rotate(-90 60 60)"
+                    class="sleep-score-arc" />
+        </svg>
+        <div class="sleep-score-inner">
+            <span class="sleep-score-number">@Model.SleepScore</span>
+            <span class="sleep-score-label" style="color:@scoreColor;">@Model.SleepScoreLabel</span>
+        </div>
+    </div>
+    <div class="sleep-score-subtitle">Sleep score</div>
+</div>
+
+<!-- ══════ KEY METRICS STRIP ══════ -->
+<div class="sleep-metrics-strip fade-up stagger-1">
+    @{
+        var metrics = new[] {
+            ("Total sleep duration", Model.TotalSleepDuration, Model.TotalSleepDurationLabel, "fa-clock", "--accent-green"),
+            ("Sleep debt", Model.SleepDebt, Model.SleepDebtLabel, "fa-scale-unbalanced", "--accent-red"),
+            ("Consistency", Model.ConsistencyPercent + "%", Model.ConsistencyLabel, "fa-arrows-rotate", "--accent-blue"),
+            ("WASO", Model.Waso, Model.WasoLabel, "fa-eye", "--accent-orange")
+        };
+    }
+    @foreach (var (label, value, rating, icon, color) in metrics)
+    {
+        var ratingColor = rating switch { "Excellent" => "#10b981", "Good" => "#10b981", "Fair" => "#f97316", _ => "#ef4444" };
+        <div class="sleep-metric-tile">
+            <div class="sleep-metric-icon" style="color:var(@color);"><i class="fa-solid @icon"></i></div>
+            <div class="sleep-metric-body">
+                <span class="sleep-metric-value">@value</span>
+                <span class="sleep-metric-label">@label</span>
+            </div>
+            <span class="sleep-metric-badge" style="background:@(ratingColor)22; color:@ratingColor;">@rating</span>
+        </div>
+    }
+</div>
+
+<!-- ══════ SLEEP INSIGHT CALLOUT ══════ -->
+<div class="sleep-callout fade-up stagger-2">
+    <i class="fa-solid fa-circle-info" style="color:var(--accent-blue);font-size:1.1rem;"></i>
+    <div>
+        <strong>@Model.InsightTitle</strong>
+        <p style="margin:0.2rem 0 0;color:var(--text-muted);font-size:0.82rem;">@Model.InsightDescription</p>
+    </div>
+</div>
+
+<!-- ══════ PRIMARY SLEEP ══════ -->
+<div class="card fade-up stagger-2" style="margin-bottom:1.5rem;">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fa-solid fa-bed" style="color:var(--accent-purple);margin-right:0.4rem;"></i> Primary sleep</h3>
+    </div>
+    <div class="sleep-primary-grid">
+        <div class="sleep-primary-item">
+            <span class="sleep-primary-value">@Model.Bedtime</span>
+            <span class="sleep-primary-label">Bedtime</span>
+            <span class="sleep-primary-badge" style="color:@(Model.BedtimeLabel == "Good" ? "#10b981" : "#f97316");">@Model.BedtimeLabel</span>
+        </div>
+        <div class="sleep-primary-divider"></div>
+        <div class="sleep-primary-item">
+            <span class="sleep-primary-value">@Model.RestoredPercent%</span>
+            <span class="sleep-primary-label">Restoredness</span>
+            <span class="sleep-primary-badge" style="color:@(Model.RestoredLabel == "Excellent" ? "#10b981" : Model.RestoredLabel == "Good" ? "#10b981" : "#f97316");">@Model.RestoredLabel</span>
+        </div>
+        <div class="sleep-primary-divider"></div>
+        <div class="sleep-primary-item">
+            <span class="sleep-primary-value">@Model.WakeTime</span>
+            <span class="sleep-primary-label">Wake time</span>
+        </div>
+    </div>
+</div>
+
+<!-- ══════ SLEEP STAGES ══════ -->
+<div class="card fade-up stagger-3" style="margin-bottom:1.5rem;">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fa-solid fa-layer-group" style="color:var(--accent-orange);margin-right:0.4rem;"></i> Sleep stages</h3>
+    </div>
+
+    <!-- Stage chart -->
+    <div class="sleep-stage-chart-wrap">
+        <canvas id="sleepStageChart" height="180"></canvas>
+    </div>
+
+    <!-- Stage breakdown bars -->
+    <div class="sleep-stages-breakdown">
+        @{
+            var stages = new[] {
+                ("Awake", Model.AwakeDurationSecs, Model.AwakePercent, "#ef4444"),
+                ("REM", Model.RemDurationSecs, Model.RemPercent, "#8b5cf6"),
+                ("Light", Model.LightDurationSecs, Model.LightPercent, "#60a5fa"),
+                ("Deep", Model.DeepDurationSecs, Model.DeepPercent, "#14b8a6")
+            };
+        }
+        @foreach (var (name, secs, pct, color) in stages)
+        {
+            <div class="sleep-stage-row">
+                <div class="sleep-stage-row-left">
+                    <span class="sleep-stage-dot" style="background:@color;"></span>
+                    <span class="sleep-stage-name">@name</span>
+                </div>
+                <div class="sleep-stage-bar-wrap">
+                    <div class="sleep-stage-bar" style="width:@pct%;background:@color;"></div>
+                </div>
+                <div class="sleep-stage-row-right">
+                    <span class="sleep-stage-dur">@SleepViewModel.FormatDuration(secs)</span>
+                    <span class="sleep-stage-pct">@pct%</span>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- ══════ VITALS DURING SLEEP ══════ -->
+<div class="card fade-up stagger-3" style="margin-bottom:1.5rem;">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fa-solid fa-heart-pulse" style="color:var(--accent-red);margin-right:0.4rem;"></i> Vitals</h3>
+    </div>
+
+    <!-- HR chart -->
+    <div class="sleep-hr-chart-wrap">
+        <canvas id="sleepHrChart" height="160"></canvas>
+    </div>
+
+    <div class="sleep-vitals-grid">
+        <div class="sleep-vital-chip">
+            <i class="fa-solid fa-wave-square" style="color:var(--accent-purple);"></i>
+            <div>
+                <span class="sleep-vital-val">@Model.HrvDuringSleep</span>
+                <span class="sleep-vital-unit">ms HRV</span>
+            </div>
+        </div>
+        <div class="sleep-vital-chip">
+            <i class="fa-solid fa-heart" style="color:var(--accent-red);"></i>
+            <div>
+                <span class="sleep-vital-val">@Model.AvgHeartRate</span>
+                <span class="sleep-vital-unit">avg bpm</span>
+            </div>
+        </div>
+        <div class="sleep-vital-chip">
+            <i class="fa-solid fa-arrow-down" style="color:var(--accent-green);"></i>
+            <div>
+                <span class="sleep-vital-val">@Model.MinHeartRate</span>
+                <span class="sleep-vital-unit">min bpm</span>
+            </div>
+        </div>
+        <div class="sleep-vital-chip">
+            <i class="fa-solid fa-arrow-up" style="color:var(--accent-orange);"></i>
+            <div>
+                <span class="sleep-vital-val">@Model.MaxHeartRate</span>
+                <span class="sleep-vital-unit">max bpm</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════ SCORE CONTRIBUTORS ══════ -->
+<div class="card fade-up stagger-4" style="margin-bottom:1.5rem;">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fa-solid fa-list-check" style="color:var(--accent-green);margin-right:0.4rem;"></i> Score contributors</h3>
+    </div>
+    <div class="sleep-contributors">
+        @{
+            var contributors = new[] {
+                ("Total sleep duration", "fa-clock", Model.ScoreDuration, Model.ScoreDurationLabel, "#10b981"),
+                ("Sleep consistency", "fa-arrows-rotate", Model.ScoreConsistency, Model.ScoreConsistencyLabel, "#3b82f6"),
+                ("Deep sleep", "fa-water", Model.ScoreDeepSleep, Model.ScoreDeepSleepLabel, "#14b8a6"),
+                ("REM sleep", "fa-brain", Model.ScoreRemSleep, Model.ScoreRemSleepLabel, "#8b5cf6"),
+                ("WASO", "fa-eye", Model.ScoreWaso, Model.ScoreWasoLabel, "#f97316"),
+                ("HRV", "fa-wave-square", Model.ScoreHrv, Model.ScoreHrvLabel, "#a78bfa"),
+                ("Heart rate dip", "fa-heart-circle-minus", Model.ScoreHeartRateDip, Model.ScoreHeartRateDipLabel, "#ef4444")
+            };
+        }
+        @foreach (var (name, icon, score, detail, color) in contributors)
+        {
+            var ratingText = score >= 80 ? "Excellent" : score >= 60 ? "Good" : score >= 40 ? "Fair" : "Poor";
+            var ratingColor = score >= 80 ? "#10b981" : score >= 60 ? "#10b981" : score >= 40 ? "#f97316" : "#ef4444";
+            <div class="sleep-contributor-row">
+                <div class="sleep-contributor-left">
+                    <i class="fa-solid @icon" style="color:@color; width:1.2rem; text-align:center;"></i>
+                    <span class="sleep-contributor-name">@name</span>
+                </div>
+                <div class="sleep-contributor-mid">
+                    <span class="sleep-contributor-badge" style="color:@ratingColor;">@ratingText</span>
+                </div>
+                <div class="sleep-contributor-right">
+                    <span class="sleep-contributor-detail">@detail</span>
+                    <div class="sleep-contributor-bar-track">
+                        <div class="sleep-contributor-bar-fill" style="width:@score%; background:@color;"></div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- ══════ 7-DAY TREND ══════ -->
+<div class="card fade-up stagger-4" style="margin-bottom:2rem;">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fa-solid fa-chart-line" style="color:var(--accent-blue);margin-right:0.4rem;"></i> 7-Day Sleep Trend</h3>
+    </div>
+    @{
+        var sleepTrend = System.Text.Json.JsonSerializer.Deserialize<List<double>>(Model.SleepTrendJson) ?? new();
+        var scoreTrend = System.Text.Json.JsonSerializer.Deserialize<List<int>>(Model.SleepScoreTrendJson) ?? new();
+        var dayLabels = System.Text.Json.JsonSerializer.Deserialize<List<string>>(Model.DayLabelsJson) ?? new();
+    }
+    <div class="sleep-trend-grid">
+        <div class="sleep-trend-section">
+            <span class="sleep-trend-title">Hours slept</span>
+            @{ var trendMax = sleepTrend.Any(v => v > 0) ? sleepTrend.Max() : 1; }
+            <div class="svg-spark-wrap" style="height:100px;">
+                @for (int i = 0; i < sleepTrend.Count && i < 7; i++)
+                {
+                    var val = sleepTrend[i];
+                    var pct = trendMax > 0 ? val / trendMax * 85 + 10 : 0;
+                    if (val == 0) pct = 0;
+                    var isToday = i == sleepTrend.Count - 1;
+                    <div class="svg-spark-col" title="@(i < dayLabels.Count ? dayLabels[i] : ""): @val.ToString("0.0")h">
+                        <div class="svg-spark-bar @(isToday ? "svg-spark-bar--active" : "")"
+                             style="height:@(val > 0 ? pct.ToString("0") : "0")%;background:@(isToday ? "#8b5cf6" : "rgba(139,92,246,0.3)");"></div>
+                        <span class="svg-spark-label">@(val > 0 ? val.ToString("0.0") : "")</span>
+                    </div>
+                }
+            </div>
+            <div class="sleep-trend-day-labels">
+                @foreach (var label in dayLabels)
+                {
+                    <span>@label</span>
+                }
+            </div>
+        </div>
+        <div class="sleep-trend-section">
+            <span class="sleep-trend-title">Sleep score</span>
+            @{ var scoreMax = scoreTrend.Any(v => v > 0) ? scoreTrend.Max() : 1; }
+            <div class="svg-spark-wrap" style="height:100px;">
+                @for (int i = 0; i < scoreTrend.Count && i < 7; i++)
+                {
+                    var val = scoreTrend[i];
+                    var pct = scoreMax > 0 ? (double)val / scoreMax * 85 + 10 : 0;
+                    if (val == 0) pct = 0;
+                    var isToday = i == scoreTrend.Count - 1;
+                    var barColor = val >= 80 ? "#10b981" : val >= 60 ? "#f97316" : "#ef4444";
+                    <div class="svg-spark-col" title="@(i < dayLabels.Count ? dayLabels[i] : ""): @val">
+                        <div class="svg-spark-bar @(isToday ? "svg-spark-bar--active" : "")"
+                             style="height:@(val > 0 ? pct.ToString("0") : "0")%;background:@(isToday ? barColor : barColor + "55");"></div>
+                        <span class="svg-spark-label">@(val > 0 ? val.ToString() : "")</span>
+                    </div>
+                }
+            </div>
+            <div class="sleep-trend-day-labels">
+                @foreach (var label in dayLabels)
+                {
+                    <span>@label</span>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function() {
+    // ── Sleep Stage Chart ──
+    var stageCtx = document.getElementById('sleepStageChart');
+    if (stageCtx) {
+        var stageData = @Html.Raw(Model.StageTimelineJson);
+        var labels = stageData.map(d => d.time);
+        var values = stageData.map(d => d.value);
+
+        new Chart(stageCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    borderColor: '#8b5cf6',
+                    backgroundColor: 'rgba(139,92,246,0.12)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    borderWidth: 2.5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            var map = {4:'Awake',3:'REM',2:'Light',1:'Deep'};
+                            return map[ctx.raw] || '';
+                        }
+                    }
+                }},
+                scales: {
+                    y: {
+                        min: 0.5, max: 4.5,
+                        ticks: {
+                            callback: function(v) { return {4:'Awake',3:'REM',2:'Light',1:'Deep'}[v]||''; },
+                            color: 'rgba(148,163,184,0.7)',
+                            font: { size: 11 }
+                        },
+                        grid: { color: 'rgba(148,163,184,0.08)' }
+                    },
+                    x: {
+                        ticks: { color: 'rgba(148,163,184,0.7)', font: { size: 10 }, maxTicksLimit: 8 },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+
+    // ── Heart Rate Chart ──
+    var hrCtx = document.getElementById('sleepHrChart');
+    if (hrCtx) {
+        var hrData = @Html.Raw(Model.HeartRateTimelineJson);
+        var hrLabels = hrData.map(d => d.time);
+        var hrValues = hrData.map(d => d.bpm);
+
+        if (hrValues.length > 0) {
+            new Chart(hrCtx, {
+                type: 'line',
+                data: {
+                    labels: hrLabels,
+                    datasets: [{
+                        data: hrValues,
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239,68,68,0.08)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 0,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: {
+                        callbacks: { label: function(ctx) { return ctx.raw + ' bpm'; } }
+                    }},
+                    scales: {
+                        y: {
+                            ticks: { color: 'rgba(148,163,184,0.7)', font: { size: 11 } },
+                            grid: { color: 'rgba(148,163,184,0.08)' }
+                        },
+                        x: {
+                            ticks: { color: 'rgba(148,163,184,0.7)', font: { size: 10 }, maxTicksLimit: 8 },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        } else {
+            hrCtx.parentNode.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:0.85rem;"><i class="fa-solid fa-heart-pulse" style="margin-right:0.3rem;"></i>No heart rate data during sleep</div>';
+        }
+    }
+})();
+</script>
+}
