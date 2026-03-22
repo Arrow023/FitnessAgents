@@ -63,11 +63,11 @@ public class SleepController : Controller
             return model;
 
         // ── Stage durations ──
-        // Stage codes: "1" = Awake, "6" = REM, "5" = Light, "4" = Deep, "2" = Out of bed
+        // Stage codes: "1" = Awake, "6" = REM, "4" = Light, "5" = Deep, "2" = Out of bed
         int awakeSecs = allStages.Where(st => st.Stage == "1").Sum(st => st.DurationSeconds);
         int remSecs = allStages.Where(st => st.Stage == "6").Sum(st => st.DurationSeconds);
-        int lightSecs = allStages.Where(st => st.Stage == "5").Sum(st => st.DurationSeconds);
-        int deepSecs = allStages.Where(st => st.Stage == "4").Sum(st => st.DurationSeconds);
+        int lightSecs = allStages.Where(st => st.Stage == "4").Sum(st => st.DurationSeconds);
+        int deepSecs = allStages.Where(st => st.Stage == "5").Sum(st => st.DurationSeconds);
 
         int totalSleepSecs = remSecs + lightSecs + deepSecs; // actual sleep (excludes awake)
         int totalTimeInBedSecs = sessions.Sum(s => s.DurationSeconds);
@@ -131,8 +131,8 @@ public class SleepController : Controller
         var stageTimeline = allStages.Select(st => new
         {
             time = TimeZoneInfo.ConvertTimeFromUtc(st.StartTime, IstZone).ToString("HH:mm"),
-            stage = st.Stage switch { "1" => "Awake", "6" => "REM", "5" => "Light", "4" => "Deep", _ => "Light" },
-            value = st.Stage switch { "1" => 4, "6" => 3, "5" => 2, "4" => 1, _ => 2 },
+            stage = st.Stage switch { "1" => "Awake", "6" => "REM", "4" => "Light", "5" => "Deep", _ => "Light" },
+            value = st.Stage switch { "1" => 4, "6" => 3, "4" => 2, "5" => 1, _ => 2 },
             durationMin = st.DurationSeconds / 60
         });
         model.StageTimelineJson = JsonSerializer.Serialize(stageTimeline);
@@ -308,7 +308,7 @@ public class SleepController : Controller
 
             var dayStages = daySessions.SelectMany(s => s.Stages).ToList();
             int sleepSecs = dayStages.Where(st => st.Stage != "1" && st.Stage != "2").Sum(st => st.DurationSeconds);
-            int deepSecs = dayStages.Where(st => st.Stage == "4").Sum(st => st.DurationSeconds);
+            int deepSecs = dayStages.Where(st => st.Stage == "5").Sum(st => st.DurationSeconds);
             int timeInBed = daySessions.Sum(s => s.DurationSeconds);
 
             sleepHours.Add(Math.Round(sleepSecs / 3600.0, 1));

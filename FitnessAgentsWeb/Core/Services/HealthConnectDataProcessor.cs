@@ -149,7 +149,7 @@ namespace FitnessAgentsWeb.Core.Services
                 int totalSleepSecs = targetSleepSessions.SelectMany(s => s.Stages).Where(st => st.Stage != "1" && st.Stage != "2").Sum(st => st.DurationSeconds);
                 context.VitalsSleepTotal = $"{totalSleepSecs / 3600}h {(totalSleepSecs % 3600) / 60}m";
 
-                int deepSleepSecs = targetSleepSessions.SelectMany(s => s.Stages).Where(st => st.Stage == "4").Sum(st => st.DurationSeconds);
+                int deepSleepSecs = targetSleepSessions.SelectMany(s => s.Stages).Where(st => st.Stage == "5").Sum(st => st.DurationSeconds);
                 context.VitalsSleepDeep = $"{deepSleepSecs / 3600}h {(deepSleepSecs % 3600) / 60}m";
 
                 // Sleep efficiency: actual sleep / total time in bed

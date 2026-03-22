@@ -55,14 +55,14 @@
                 {
                     var accent = $"var({colors[colorIdx % colors.Length]})";
                     colorIdx++;
-                    <div class="exercise-card" style="--card-accent: @accent;">
+                    <a href="@Url.Action("Detail", new { startUtc = session.StartTimeUtc.ToString("o") })" class="exercise-card" style="--card-accent: @accent; text-decoration: none;">
                         <div class="exercise-card-icon" style="color: @accent;">
                             <i class="@session.Icon"></i>
                         </div>
                         <div class="exercise-card-name">@session.Name</div>
                         <div class="exercise-card-duration">@session.DurationMinutes <span>min</span></div>
                         <div class="exercise-card-time">@session.StartTime — @session.EndTime</div>
-                    </div>
+                    </a>
                 }
             </div>
         </div>

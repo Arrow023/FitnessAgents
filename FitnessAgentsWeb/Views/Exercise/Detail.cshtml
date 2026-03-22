@@ -1,0 +1,284 @@
+@model ExerciseDetailViewModel
+@{
+    ViewData["Title"] = Model.Name;
+
+    string FormatPace(double? pace)
+    {
+        if (pace == null || pace <= 0) return "--";
+        var totalSeconds = (int)(pace.Value * 60);
+        var mins = totalSeconds / 60;
+        var secs = totalSeconds % 60;
+        return $"{mins}:{secs:D2}/km";
+    }
+}
+
+<link rel="stylesheet" href="~/css/exercise-detail.css" />
+
+<div class="exd-page fade-up">
+    <!-- Back + Header -->
+    <div class="exd-header">
+        <a href="@Url.Action("Index")" class="exd-back-btn" title="Back to Exercise History">
+            <i class="fa-solid fa-chevron-left"></i>
+        </a>
+        <div class="exd-header-icon" style="color: var(--primary);">
+            <i class="@Model.Icon"></i>
+        </div>
+        <h1 class="exd-header-title">@Model.Name</h1>
+    </div>
+
+    <!-- Time strip -->
+    <div class="exd-time-strip fade-up stagger-1">
+        <div class="exd-time-item">
+            <div class="exd-time-label">Start time</div>
+            <div class="exd-time-value">@Model.StartTime</div>
+        </div>
+        <div class="exd-time-item">
+            <div class="exd-time-label">Duration</div>
+            <div class="exd-time-value">@Model.DurationMinutes<span class="exd-time-unit"> Mins</span></div>
+        </div>
+    </div>
+
+    @if (Model.WorkoutScore.HasValue)
+    {
+        <!-- Workout Score Ring -->
+        <div class="exd-score-section fade-up stagger-2">
+            <div class="exd-score-ring">
+                <svg viewBox="0 0 120 120" class="exd-score-svg">
+                    <circle cx="60" cy="60" r="52" fill="none" stroke="var(--border-light)" stroke-width="7" />
+                    <circle cx="60" cy="60" r="52" fill="none"
+                            stroke="url(#scoreGrad)" stroke-width="7" stroke-linecap="round"
+                            stroke-dasharray="@((int)(326.7 * Model.WorkoutScore.Value / 100)) 327"
+                            transform="rotate(-90 60 60)" />
+                    <defs>
+                        <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#fbbf24" />
+                            <stop offset="100%" stop-color="#10b981" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <div class="exd-score-value">@Model.WorkoutScore</div>
+                <div class="exd-score-label">Workout score</div>
+            </div>
+        </div>
+    }
+
+    <!-- Metric Cards Grid -->
+    <div class="exd-metrics-grid fade-up stagger-2">
+        @if (Model.ActiveCalories.HasValue)
+        {
+            <div class="exd-metric-card">
+                <div class="exd-metric-icon" style="color: var(--accent-orange);"><i class="fa-solid fa-fire-flame-curved"></i></div>
+                <div class="exd-metric-label">Active calories</div>
+                <div class="exd-metric-value">@Model.ActiveCalories <span>kcal</span></div>
+            </div>
+        }
+        @if (Model.TotalCalories.HasValue)
+        {
+            <div class="exd-metric-card">
+                <div class="exd-metric-icon" style="color: var(--accent-red);"><i class="fa-solid fa-fire"></i></div>
+                <div class="exd-metric-label">Total calories</div>
+                <div class="exd-metric-value">@Model.TotalCalories <span>kcal</span></div>
+            </div>
+        }
+    </div>
+
+    <div class="exd-metrics-grid exd-metrics-grid-3 fade-up stagger-3">
+        @if (Model.Steps.HasValue && Model.Steps > 0)
+        {
+            <div class="exd-metric-card exd-metric-card-sm">
+                <div class="exd-metric-icon-sm" style="color: var(--accent-green);"><i class="fa-solid fa-shoe-prints"></i></div>
+                <div class="exd-metric-label">Steps</div>
+                <div class="exd-metric-value-sm">@Model.Steps.Value.ToString("N0")</div>
+            </div>
+        }
+        @if (Model.PaceMinPerKm.HasValue)
+        {
+            <div class="exd-metric-card exd-metric-card-sm">
+                <div class="exd-metric-icon-sm" style="color: var(--accent-blue);"><i class="fa-solid fa-gauge-high"></i></div>
+                <div class="exd-metric-label">Pace</div>
+                <div class="exd-metric-value-sm">@FormatPace(Model.PaceMinPerKm)</div>
+            </div>
+        }
+        @if (Model.DistanceKm.HasValue)
+        {
+            <div class="exd-metric-card exd-metric-card-sm">
+                <div class="exd-metric-icon-sm" style="color: var(--accent-purple);"><i class="fa-solid fa-route"></i></div>
+                <div class="exd-metric-label">Distance</div>
+                <div class="exd-metric-value-sm">@Model.DistanceKm <span>km</span></div>
+            </div>
+        }
+    </div>
+
+    @if (Model.HeartRateZones.Count > 0)
+    {
+        <!-- Heart Rate Zones -->
+        <div class="exd-section fade-up stagger-3">
+            <div class="exd-section-title">Heart rate zones</div>
+            <div class="exd-hr-zones-card">
+                <div class="exd-hr-zones-ring">
+                    <svg viewBox="0 0 120 120" class="exd-zones-svg">
+                        @{
+                            var totalPct = Model.HeartRateZones.Sum(z => z.Percentage);
+                            var circumference = 2 * Math.PI * 48;
+                            var offset = 0.0;
+                        }
+                        @foreach (var zone in Model.HeartRateZones.Where(z => z.Percentage > 0).OrderByDescending(z => z.Percentage))
+                        {
+                            var dashLen = circumference * zone.Percentage / (totalPct > 0 ? totalPct : 100);
+                            <circle cx="60" cy="60" r="48" fill="none"
+                                    stroke="@zone.Color" stroke-width="9" stroke-linecap="round"
+                                    stroke-dasharray="@dashLen @(circumference - dashLen)"
+                                    stroke-dashoffset="@(-offset)"
+                                    transform="rotate(-90 60 60)" />
+                            offset += dashLen;
+                        }
+                    </svg>
+                    <div class="exd-zones-center">
+                        <i class="fa-solid fa-heart-pulse"></i>
+                        <span>Heart rate<br/>zones</span>
+                    </div>
+                </div>
+                <div class="exd-hr-zones-list">
+                    @foreach (var zone in Model.HeartRateZones)
+                    {
+                        <div class="exd-hr-zone-row">
+                            <div class="exd-hr-zone-dot" style="background: @zone.Color;"></div>
+                            <div class="exd-hr-zone-info">
+                                <div class="exd-hr-zone-label">@zone.Label</div>
+                                <div class="exd-hr-zone-range">@zone.Range</div>
+                            </div>
+                            <div class="exd-hr-zone-pct">@zone.Percentage%</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (Model.HeartRateTimeline.Count > 0)
+    {
+        <!-- Heart Rate Chart -->
+        <div class="exd-section fade-up stagger-4">
+            <div class="exd-section-title">Heart rate</div>
+            <div class="exd-hr-summary">
+                <div class="exd-hr-stat">
+                    <div class="exd-hr-stat-icon"><i class="fa-solid fa-heart-pulse"></i></div>
+                    <div>
+                        <div class="exd-hr-stat-label">Avg</div>
+                        <div class="exd-hr-stat-value">@Model.AvgHeartRate <span>bpm</span></div>
+                    </div>
+                </div>
+                <div class="exd-hr-stat">
+                    <div class="exd-hr-stat-icon low"><i class="fa-solid fa-arrow-down"></i></div>
+                    <div>
+                        <div class="exd-hr-stat-label">Min</div>
+                        <div class="exd-hr-stat-value">@Model.MinHeartRate <span>bpm</span></div>
+                    </div>
+                </div>
+                <div class="exd-hr-stat">
+                    <div class="exd-hr-stat-icon high"><i class="fa-solid fa-arrow-up"></i></div>
+                    <div>
+                        <div class="exd-hr-stat-label">Max</div>
+                        <div class="exd-hr-stat-value">@Model.MaxHeartRate <span>bpm</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="exd-chart-container">
+                <canvas id="hrChart"></canvas>
+            </div>
+        </div>
+    }
+</div>
+
+@if (Model.HeartRateTimeline.Count > 0)
+{
+    @section Scripts {
+        <script>
+            (function () {
+                const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.HeartRateTimeline.Select(h => h.Time)));
+                const data = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.HeartRateTimeline.Select(h => h.Bpm)));
+                const avg = @(Model.AvgHeartRate ?? 0);
+
+                const ctx = document.getElementById('hrChart').getContext('2d');
+                const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+                gradient.addColorStop(0, 'rgba(239, 68, 68, 0.35)');
+                gradient.addColorStop(1, 'rgba(239, 68, 68, 0.02)');
+
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Heart Rate',
+                                data: data,
+                                borderColor: '#ef4444',
+                                backgroundColor: gradient,
+                                fill: true,
+                                tension: 0.35,
+                                pointRadius: 0,
+                                pointHitRadius: 8,
+                                borderWidth: 2
+                            },
+                            {
+                                label: 'Average',
+                                data: Array(data.length).fill(avg),
+                                borderColor: 'rgba(96, 165, 250, 0.6)',
+                                borderDash: [6, 4],
+                                borderWidth: 1.5,
+                                pointRadius: 0,
+                                fill: false
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                                titleColor: '#f1f5f9',
+                                bodyColor: '#f1f5f9',
+                                borderColor: 'rgba(148, 163, 184, 0.2)',
+                                borderWidth: 1,
+                                cornerRadius: 8,
+                                padding: 10,
+                                callbacks: {
+                                    label: (c) => c.dataset.label + ': ' + c.parsed.y + ' bpm'
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                display: true,
+                                ticks: {
+                                    color: 'var(--text-muted, #94a3b8)',
+                                    maxTicksLimit: 5,
+                                    font: { size: 10, family: 'Sora' }
+                                },
+                                grid: { display: false }
+                            },
+                            y: {
+                                display: true,
+                                ticks: {
+                                    color: 'var(--text-muted, #94a3b8)',
+                                    font: { size: 10, family: 'Sora' },
+                                    stepSize: 10
+                                },
+                                grid: {
+                                    color: 'rgba(148, 163, 184, 0.08)',
+                                    drawBorder: false
+                                }
+                            }
+                        },
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        }
+                    }
+                });
+            })();
+        </script>
+    }
+}

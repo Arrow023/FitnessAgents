@@ -850,7 +850,7 @@ document.addEventListener('DOMContentLoaded', function() {
             {
                 var istTime = TimeZoneInfo.ConvertTimeFromUtc(stage.StartTime, istZone);
                 <text>labels.push('@istTime.ToString("HH:mm")'); </text>
-                var mapped = stage.Stage switch { "1" => 4, "6" => 3, "4" => 2, "5" => 1, _ => 2 };
+                var mapped = stage.Stage switch { "1" => 4, "6" => 3, "4" => 2, "5" => 1, _ => 2 }; // 1=Awake, 6=REM, 4=Light, 5=Deep
                 <text>data.push(@mapped); </text>
             }
         }
