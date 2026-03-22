@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🏋️ HealthAssistant AI
+# 🏋️ FitnessAgents
 
 ### Your Private AI Strength Coach & Sports Nutritionist
 
@@ -19,9 +19,9 @@
 
 ---
 
-## Why HealthAssistant?
+## Why FitnessAgents?
 
-Most fitness apps give everyone the same cookie-cutter plan. HealthAssistant is different — it reads your **real biometrics** (HRV, resting heart rate, sleep stages, VO2max, body composition) and generates a plan that adapts to *you* every single day.
+Most fitness apps give everyone the same cookie-cutter plan. FitnessAgents is different — it reads your **real biometrics** (HRV, resting heart rate, sleep stages, VO2max, body composition) and generates a plan that adapts to *you* every single day.
 
 - **Bad sleep last night?** The AI dials back intensity and prescribes active recovery.
 - **Crushing your step goals?** It pushes progressive overload on your target muscle groups.
@@ -59,11 +59,52 @@ Upload a photo of your InBody body composition scan and the AI vision model extr
 - **Target Tracking** — Fat control and muscle control goals from the scan
 - **AI Context Integration** — Extracted data feeds directly into workout and diet generation
 
+### 📓 Daily Diary
+Log what you actually ate, how your workout felt, pain points, mood, and hydration — then let the AI compare your reality against its recommendations.
+
+- **Meal Tracking** — Record actual food intake alongside the AI-recommended plan, flag substitutions
+- **Workout Logging** — Mark exercises as completed/skipped with per-exercise difficulty ratings and notes
+- **Pain Journal** — Track body-area pain with severity (1–5) to inform future AI-generated plans
+- **Mood & Energy** — Daily energy level (1–5) + free-form sleep and general notes
+- **Water Intake** — Track daily hydration in litres
+- **Date Navigation** — Browse and edit past diary entries with a calendar navigator
+- **Plan Comparison** — Side-by-side view of AI-recommended meals/workouts vs. what you actually did
+
+### 😴 Sleep Analysis Dashboard
+A dedicated deep-dive into your sleep data with a composite sleep score, stage breakdowns, vitals overlay, and 7-day trends.
+
+- **Sleep Score (0–100)** — Weighted composite of duration, deep sleep, REM, efficiency, WASO, HRV, and HR dip
+- **Stage Breakdown** — Awake, Light, REM, and Deep durations with percentages and interactive timeline chart
+- **Key Metrics** — Total sleep duration, sleep debt (vs. 8h target), WASO (Wake After Sleep Onset), sleep efficiency
+- **Vitals During Sleep** — Average/min/max heart rate and HRV overlaid on the sleep window
+- **Smart Insights** — Context-aware callout that interprets your sleep quality (e.g., "Fragmented sleep — high WASO detected")
+- **Score Contributors** — Visual breakdown showing how each factor contributed to your overall score
+- **7-Day Trend** — Historical sleep duration and score trends rendered as charts
+
+### 🔔 Real-time In-App Notifications
+Live notification bell in the top bar powered by Server-Sent Events (SSE) — no polling, no page refresh.
+
+- **SSE Streaming** — Persistent event stream pushes notifications to the browser in real-time
+- **Notification Types** — Plan requested, workout ready, diet ready, health data received, errors
+- **Read/Unread Tracking** — Mark individual or all notifications as read
+- **Auto-Pruning** — Notifications older than 24 hours are automatically cleaned up
+- **Pipeline Integration** — Background plan generation pushes status notifications at each stage
+
+### ⚡ Background Plan Generation
+Plan generation runs asynchronously via a channel-based background service with real-time progress reporting.
+
+- **Bounded Channel** — Up to 10 concurrent jobs queued in a `Channel<PlanGenerationJob>`
+- **Progress Tracking** — Each job reports discrete stages: Queued → Loading Health Data → Querying History → Generating Workout → Generating Diet → Saving → Sending Notification → Completed
+- **Duplicate Prevention** — Rejects new jobs if a user already has an active generation in progress
+- **Admin Jobs Panel** — Manually trigger workout generation or weekly digest for any user from the Admin UI
+- **Auto-Cleanup** — Stale jobs older than 1 hour are automatically removed from memory
+
 ### 🧠 Semantic Memory (Qdrant Vector Store)
 The AI learns from your history. Every generated plan is embedded and stored in a Qdrant vector database. When generating new plans, the AI retrieves similar past plans and user feedback to make smarter decisions over time.
 
 - **Similarity Search** — Finds past plans generated under similar biometric conditions (recovery, sleep, HRV)
 - **Feedback-Aware** — Star ratings, difficulty feedback, and skipped items are attached to stored plans
+- **Weekly Diary Digests** — Aggregated weekly behavioral summaries (mood trends, workout adherence, recurring pains, frequently skipped exercises) are embedded for long-term pattern recognition
 - **Graceful Degradation** — If Qdrant is unavailable, the system works exactly as before
 - **Configurable** — Embedding model, endpoint, API key, and vector dimensions are all configurable via Admin Settings
 
@@ -83,7 +124,7 @@ Steps · Sleep (with stages) · Heart Rate · Resting Heart Rate · HRV · Activ
 
 ## 📱 Health Connect Integration
 
-HealthAssistant receives physiological data from Android devices via [**Health Connect to Webhook**](https://github.com/mcnaveen/health-connect-webhook) by [@mcnaveen](https://github.com/mcnaveen). This open-source Android app bridges **Google Fit, Samsung Health, Fitbit, Garmin Connect, Oura, and 50+ other health apps** into a unified webhook pipeline.
+FitnessAgents receives physiological data from Android devices via [**Health Connect to Webhook**](https://github.com/mcnaveen/health-connect-webhook) by [@mcnaveen](https://github.com/mcnaveen). This open-source Android app bridges **Google Fit, Samsung Health, Fitbit, Garmin Connect, Oura, and 50+ other health apps** into a unified webhook pipeline.
 
 ### Quick Setup
 
@@ -96,12 +137,12 @@ HealthAssistant receives physiological data from Android devices via [**Health C
 ### Data Pipeline
 
 ```
-┌─────────────┐     ┌──────────────┐     ┌───────────────────┐     ┌──────────────┐     ┌────────────┐
-│ Smart Ring / │     │ HC Webhook   │     │ WebhooksController│     │ HealthConnect│     │ AI         │
+┌──────────────┐     ┌──────────────┐      ┌───────────────────┐     ┌──────────────┐      ┌─────────────┐
+│ Smart Ring / │     │ HC Webhook   │      │ WebhooksController│     │ HealthConnect│      │ AI          │
 │ Fitness App  │────▶│ Android App  │────▶│ POST /api/webhook │────▶│ DataProcessor│────▶│ Orchestrator│
-│ (via Health  │     │              │     │                   │     │ (15-day      │     │ (Workout + │
-│  Connect)    │     └──────────────┘     └───────────────────┘     │  merge)      │     │  Diet Gen) │
-└─────────────┘                                                     └──────────────┘     └────────────┘
+│ (via Health  │     │              │      │                   │     │ (15-day      │      │ (Workout +  │
+│  Connect)    │     └──────────────┘      └───────────────────┘     │  merge)      │      │  Diet Gen)  │
+└─────────────┘                                                      └──────────────┘      └─────────────┘
                                                                                                │
                                                                           ┌────────────────────┤
                                                                           ▼                    ▼
@@ -119,50 +160,69 @@ Built on **ASP.NET Core 8 MVC** with a clean, service-oriented architecture:
 
 ```
 FitnessAgentsWeb/
-├── Controllers/            # MVC controllers (10 controllers, REST + views)
-│   ├── WebhooksController  #   Health Connect data ingest (POST)
-│   ├── OverviewController  #   Main dashboard — today's vitals + InBody
-│   ├── WorkoutController   #   AI workout plans (view, generate, resend)
-│   ├── DietController      #   AI diet plans (view, resend)
-│   ├── ExerciseController  #   Exercise session history
-│   ├── ProfileController   #   User prefs, schedule, InBody upload
-│   ├── AdminController     #   User management, global settings, logs
-│   ├── AuthController      #   Cookie-based login/logout
-│   └── SetupController     #   First-run configuration wizard
+├── Controllers/                # MVC controllers (13 controllers, REST + views)
+│   ├── WebhooksController      #   Health Connect data ingest (POST)
+│   ├── OverviewController      #   Main dashboard — today's vitals + InBody
+│   ├── WorkoutController       #   AI workout plans (view, generate, resend)
+│   ├── DietController          #   AI diet plans (view, resend)
+│   ├── ExerciseController      #   Exercise session history
+│   ├── SleepController         #   Detailed sleep analysis dashboard
+│   ├── DiaryController         #   Daily diary — meals, workouts, pain, mood
+│   ├── NotificationsController #   Real-time SSE notifications API
+│   ├── ProfileController       #   User prefs, schedule, InBody upload
+│   ├── AdminController         #   User management, settings, logs, job triggers
+│   ├── AuthController          #   Cookie-based login/logout
+│   ├── SetupController         #   First-run configuration wizard
+│   └── DashboardController     #   Legacy redirect (→ Overview)
 │
 ├── Core/
-│   ├── Interfaces/         # Service abstractions
+│   ├── Interfaces/             # Service abstractions
 │   │   ├── IAiAgentService          — LLM workout + diet generation
 │   │   ├── IAiOrchestratorService   — Central AI workflow coordinator
 │   │   ├── IStorageRepository       — Data persistence (CRUD)
 │   │   ├── IHealthDataProcessor     — Merge, deduplicate, compute scores
-│   │   └── INotificationService     — Email delivery
+│   │   ├── INotificationService     — Email delivery
+│   │   ├── IAppNotificationStore    — In-app notification store + SSE signaling
+│   │   ├── IPlanGenerationTracker   — Background job progress tracking
+│   │   ├── IPlanVectorStore         — Vector similarity search for plan history
+│   │   └── IEmbeddingService        — Text → vector embedding generation
 │   │
-│   ├── Services/           # Implementations
-│   │   ├── AiOrchestratorService         — Multi-step AI pipeline
-│   │   ├── NvidiaNimAgentService         — NVIDIA NIM / OpenAI LLM client
-│   │   ├── HealthConnectDataProcessor    — 15-day sliding window + scoring
-│   │   ├── FirebaseStorageRepository     — Firebase Realtime DB persistence
-│   │   ├── InBodyOcrService              — Vision-based body comp extraction
-│   │   ├── SmtpEmailNotificationService  — HTML email delivery
-│   │   └── WorkoutEmailSchedulerService  — Background scheduler (daily)
+│   ├── Services/               # Implementations
+│   │   ├── AiOrchestratorService           — Multi-step AI pipeline
+│   │   ├── NvidiaNimAgentService           — NVIDIA NIM / OpenAI LLM client
+│   │   ├── HealthConnectDataProcessor      — 15-day sliding window + scoring
+│   │   ├── FirebaseStorageRepository       — Firebase Realtime DB persistence
+│   │   ├── InBodyOcrService                — Vision-based body comp extraction
+│   │   ├── SmtpEmailNotificationService    — HTML email delivery
+│   │   ├── WorkoutEmailSchedulerService    — Background scheduler (daily)
+│   │   ├── PlanGenerationBackgroundService — Channel-based async plan generation
+│   │   ├── PlanGenerationTracker           — In-memory job status tracking
+│   │   ├── AppNotificationStore            — Thread-safe SSE notification store
+│   │   ├── QdrantPlanVectorStore           — Qdrant-backed vector similarity
+│   │   └── EmbeddingService                — OpenAI-compatible text embeddings
 │   │
-│   ├── Factories/          # DI factory pattern for pluggable providers
-│   ├── Configuration/      # Firebase + local config providers
-│   ├── Helpers/            # Timezone, exercise types, markdown rendering
-│   └── Logging/            # Serilog timezone enricher
+│   ├── Factories/              # DI factory pattern for pluggable providers
+│   ├── Configuration/          # Firebase + local config providers
+│   ├── Helpers/                # Timezone, exercise types, markdown rendering
+│   └── Logging/                # Serilog timezone enricher
 │
-├── Models/                 # Domain models
-│   ├── HealthExportPayload — 19 Health Connect data types
-│   ├── UserHealthContext   — ~70 computed properties for AI context
-│   ├── UserProfile         — User preferences + workout schedule
-│   ├── DietPlan            — Structured meal plan with macros
-│   └── InBodyMetrics       — Body composition scan data
+├── Models/                     # Domain models
+│   ├── HealthExportPayload     — 19 Health Connect data types
+│   ├── UserHealthContext       — ~70 computed properties for AI context
+│   ├── UserProfile             — User preferences + workout schedule
+│   ├── DietPlan                — Structured meal plan with macros
+│   ├── InBodyMetrics           — Body composition scan data
+│   ├── DailyDiary              — Daily diary (meals, workouts, pain, mood, water)
+│   ├── WeeklyDigest            — Aggregated weekly behavioral summary
+│   ├── AppNotification         — In-app notification with type and read state
+│   ├── PlanRecord              — Archival plan record for vector store
+│   ├── PlanGenerationJob       — Background generation job with status stages
+│   └── PlanFeedback            — User ratings + notes per generated plan
 │
-├── Views/                  # Razor views (MVC)
-├── Templates/              # HTML email templates (Workout + Diet)
-├── Tools/                  # AI function-calling tool definitions
-└── wwwroot/                # Static assets (CSS)
+├── Views/                      # Razor views (MVC)
+├── Templates/                  # HTML email templates (Workout + Diet)
+├── Tools/                      # AI function-calling tool definitions
+└── wwwroot/                    # Static assets (CSS)
 ```
 
 ### Key Design Patterns
@@ -173,6 +233,8 @@ FitnessAgentsWeb/
 | **Strategy Pattern** | `IAiAgentService` allows swapping LLM backends |
 | **Repository Pattern** | `IStorageRepository` abstracts Firebase vs local storage |
 | **Background Service** | `WorkoutEmailSchedulerService` runs as a hosted service |
+| **Channel Pipeline** | `PlanGenerationBackgroundService` processes jobs from a bounded `Channel<T>` |
+| **SSE Push** | `AppNotificationStore` signals browser clients via Server-Sent Events |
 | **Orchestrator** | `AiOrchestratorService` coordinates data → AI → storage → email |
 | **Semantic Memory** | `QdrantPlanVectorStore` + `EmbeddingService` enable historical plan retrieval |
 
@@ -192,18 +254,18 @@ The Qdrant vector store and user feedback loop form a closed learning system. He
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                        PLAN GENERATION (ProcessAndGenerateAsync)            │
+│                        PLAN GENERATION                                      │
 │                                                                             │
 │  1. Load health data → UserHealthContext                                    │
 │  2. Build query text from today's biometrics:                               │
-│     "Type: Workout | Target: Chest | Recovery: 78/100 | HRV: 45ms | ..."   │
+│     "Type: Workout | Target: Chest | Recovery: 78/100 | HRV: 45ms | ..."    │
 │  3. Generate embedding vector via EmbeddingService                          │
 │  4. Search Qdrant for similar past plans (cosine similarity ≥ 0.65)         │
 │  5. Load recent user feedback from Firebase                                 │
-│  6. Inject similar plans + feedback into AI prompt                          │
+│  6. Inject similar plans + feedback + diary digests into AI prompt          │
 │  7. AI generates plans with historical awareness                            │
 │  8. Save plans to Firebase (weekly history)                                 │
-│  9. Fire-and-forget: embed new plans → upsert to Qdrant                    │
+│  9. Fire-and-forget: embed new plans → upsert to Qdrant                     │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -216,6 +278,19 @@ The Qdrant vector store and user feedback loop form a closed learning system. He
 │  5. Next generation: feedback is retrieved and injected into AI prompts     │
 │     → AI learns to repeat high-rated patterns and avoid skipped items       │
 └─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        WEEKLY DIARY DIGEST                                  │
+│                                                                             │
+│  1. Admin triggers digest (per-user or all) via Jobs page or scheduled      │
+│  2. Aggregates past week's diary entries: mood, water, meals, workouts,     │
+│     pain logs, exercise completion rates, substitutions                     │
+│  3. Builds a summary text highlighting behavioral patterns                  │
+│  4. Embeds digest text → upserts to Qdrant as "diary_digest" type           │
+│  5. Saves WeeklyDigest to Firebase at /users/{userId}/weekly_digests        │
+│  6. During plan generation: top 3 similar digests are retrieved and         │
+│     injected as "LONG-TERM BEHAVIORAL PATTERNS" in the AI prompt            │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 **When does it trigger?**
@@ -226,6 +301,7 @@ The Qdrant vector store and user feedback loop form a closed learning system. He
 | **Each plan generation** | Before calling the LLM, the orchestrator queries Qdrant for the top 3 similar past plans and last 5 feedback items |
 | **After plan generation** | New plans are embedded and upserted to Qdrant in a background `Task.Run` (does not block the response) |
 | **User submits feedback** | Feedback is saved to Firebase and attached to the existing Qdrant point via `SetPayloadAsync` |
+| **Weekly diary digest** | Admin triggers (or scheduled): aggregates diary entries → embeds summary → upserts as `diary_digest` type in Qdrant |
 | **Qdrant unavailable** | All vector operations gracefully degrade — plans generate normally without historical context |
 
 **Vector store details:**
@@ -233,7 +309,7 @@ The Qdrant vector store and user feedback loop form a closed learning system. He
 - **Collection:** `health_plans` (created automatically on first startup)
 - **Distance metric:** Cosine similarity
 - **Default vector dimension:** 1536 (configurable via Admin Settings → Embedding Model → Vector Dimension)
-- **Filters:** Each search is scoped to `user_id` + `plan_type` (workout/diet)
+- **Filters:** Each search is scoped to `user_id` + `plan_type` (workout/diet/diary_digest)
 - **Point ID:** Deterministic FNV-1a hash of `{userId}_{dayOfWeek}_{planType}` — same day/type overwrites the previous embedding
 - **Payload fields:** `user_id`, `plan_type`, `muscle_group`, `plan_date`, `recovery_score`, `sleep_score`, `active_score`, `plan_summary`, `plan_json`, `rhr`, `hrv`, `sleep_total`, `rating`, `difficulty`, `feedback_note`, `skipped_items`
 
@@ -457,6 +533,8 @@ X-Custom-Header-Key: <value>
     /inbody              → InBodyExport (latest body composition scan)
     /diet                → DietPlan (latest generated diet)
     /feedback            → PlanFeedback (user ratings + notes per plan)
+    /diary/{date}        → DailyDiary (meals, workouts, pain, mood, water)
+    /weekly_digests      → WeeklyDigest (aggregated behavioral summaries)
 ```
 
 ### Admin Settings (Web UI)
@@ -469,6 +547,7 @@ Access via **Admin → Settings** after login:
 - **Embedding Model** — Model ID, endpoint URL, API key, vector dimension (falls back to AI Orchestration if empty)
 - **Vector Store (Qdrant)** — Endpoint URL, API key
 - **Timezone** — Application-wide timezone (IST, EST, UTC, etc.)
+- **Job Triggers** — Manually trigger workout generation or weekly diary digest per-user or for all active users
 
 ### Per-User Settings (Profile)
 
@@ -497,10 +576,10 @@ Contributions are welcome! Here's how to get started:
 - Additional AI provider integrations (Anthropic, Gemini, local models)
 - iOS Health data bridge (HealthKit → webhook)
 - Data visualization and trend charts
-- Docker containerization
 - Unit and integration tests
 - Localization / multi-language support
 - Vector store alternatives (Pinecone, Weaviate, ChromaDB)
+- Automated weekly digest scheduling (currently manual via Admin Jobs)
 
 ---
 

@@ -1,0 +1,120 @@
+@model System.Collections.Generic.Dictionary<string, FitnessAgentsWeb.Models.UserProfile>
+@{
+    ViewData["Title"] = "Job Triggers";
+    var jobResult = TempData["JobResult"]?.ToString();
+    var jobSuccess = TempData["JobSuccess"]?.ToString();
+}
+
+<div class="page-header fade-up">
+    <h1 class="page-title">Job Triggers</h1>
+    <p class="page-subtitle">Manually trigger background jobs for workout scheduling and weekly diary digests.</p>
+</div>
+
+@if (!string.IsNullOrEmpty(jobResult))
+{
+    var alertClass = jobSuccess == "True" ? "background: rgba(34,197,94,0.12); border: 1px solid var(--accent-green); color: var(--accent-green);"
+                                          : "background: rgba(239,68,68,0.12); border: 1px solid var(--accent-red); color: var(--accent-red);";
+    var alertIcon = jobSuccess == "True" ? "fa-solid fa-circle-check" : "fa-solid fa-circle-xmark";
+    <div class="fade-up" style="@alertClass padding: 1rem 1.25rem; border-radius: var(--radius); margin-bottom: 1.5rem; font-size: 0.9rem; display: flex; align-items: center; gap: 0.75rem;">
+        <i class="@alertIcon" style="font-size: 1.1rem;"></i>
+        <span>@jobResult</span>
+    </div>
+}
+
+<div class="grid-2 fade-up" style="align-items: start;">
+    <!-- Workout Scheduler -->
+    <div class="card">
+        <h3 style="margin: 0 0 0.5rem; font-weight: 700;">
+            <i class="fa-solid fa-dumbbell" style="color: var(--primary); margin-right: 0.5rem;"></i>Workout Scheduler
+        </h3>
+        <p style="color: var(--text-secondary); font-size: 0.85rem; margin: 0 0 1.25rem;">
+            Triggers the full AI orchestration pipeline — loads health data, generates workout &amp; diet plans, sends email notifications.
+        </p>
+
+        <!-- Trigger All -->
+        <form method="post" asp-controller="Admin" asp-action="TriggerWorkoutSchedulerAll" style="margin-bottom: 1.25rem;">
+            <button type="submit" class="btn btn-block" onclick="return confirm('Run workout scheduler for ALL active users?')">
+                <i class="fa-solid fa-users"></i> Trigger All Active Users
+            </button>
+        </form>
+
+        <div style="border-top: 1px solid var(--border); padding-top: 1rem;">
+            <span style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary);">Per User</span>
+            @if (Model != null && Model.Count > 0)
+            {
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.75rem;">
+                    @foreach (var kp in Model.Where(u => u.Value.IsActive))
+                    {
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.75rem; border-radius: var(--radius); background: var(--bg); border: 1px solid var(--border);">
+                            <div>
+                                <strong style="font-size: 0.9rem;">@kp.Value.FirstName @kp.Value.LastName</strong>
+                                <span class="badge" style="margin-left: 0.5rem; font-size: 0.7rem;">@kp.Key</span>
+                            </div>
+                            <form method="post" asp-controller="Admin" asp-action="TriggerWorkoutScheduler" style="margin: 0;">
+                                <input type="hidden" name="userId" value="@kp.Key" />
+                                <button type="submit" class="btn" style="padding: 0.4rem 0.9rem; font-size: 0.8rem;" onclick="return confirm('Run workout scheduler for @kp.Value.FirstName?')">
+                                    <i class="fa-solid fa-play"></i> Run
+                                </button>
+                            </form>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="empty-state" style="margin-top: 0.75rem;">
+                    <i class="fa-solid fa-user-slash"></i>
+                    <p>No active users found.</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Weekly Diary Digest -->
+    <div class="card">
+        <h3 style="margin: 0 0 0.5rem; font-weight: 700;">
+            <i class="fa-solid fa-book-open" style="color: var(--accent-green); margin-right: 0.5rem;"></i>Weekly Diary Digest
+        </h3>
+        <p style="color: var(--text-secondary); font-size: 0.85rem; margin: 0 0 1.25rem;">
+            Generates a weekly behavioral summary from diary entries — aggregates mood, meals, workout adherence, recurring pain patterns, and embeds into the vector store.
+        </p>
+
+        <!-- Trigger All -->
+        <form method="post" asp-controller="Admin" asp-action="TriggerWeeklyDigestAll" style="margin-bottom: 1.25rem;">
+            <button type="submit" class="btn btn-block" style="background: var(--accent-green);" onclick="return confirm('Generate weekly digest for ALL active users?')">
+                <i class="fa-solid fa-users"></i> Trigger All Active Users
+            </button>
+        </form>
+
+        <div style="border-top: 1px solid var(--border); padding-top: 1rem;">
+            <span style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary);">Per User</span>
+            @if (Model != null && Model.Count > 0)
+            {
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.75rem;">
+                    @foreach (var kp in Model.Where(u => u.Value.IsActive))
+                    {
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.75rem; border-radius: var(--radius); background: var(--bg); border: 1px solid var(--border);">
+                            <div>
+                                <strong style="font-size: 0.9rem;">@kp.Value.FirstName @kp.Value.LastName</strong>
+                                <span class="badge" style="margin-left: 0.5rem; font-size: 0.7rem;">@kp.Key</span>
+                            </div>
+                            <form method="post" asp-controller="Admin" asp-action="TriggerWeeklyDigest" style="margin: 0;">
+                                <input type="hidden" name="userId" value="@kp.Key" />
+                                <button type="submit" class="btn" style="padding: 0.4rem 0.9rem; font-size: 0.8rem; background: var(--accent-green);" onclick="return confirm('Generate weekly digest for @kp.Value.FirstName?')">
+                                    <i class="fa-solid fa-play"></i> Run
+                                </button>
+                            </form>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="empty-state" style="margin-top: 0.75rem;">
+                    <i class="fa-solid fa-user-slash"></i>
+                    <p>No active users found.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>

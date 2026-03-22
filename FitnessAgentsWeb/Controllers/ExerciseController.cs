@@ -109,8 +109,9 @@ public class ExerciseController : Controller
             if (meters > 0)
             {
                 model.DistanceKm = Math.Round(meters / 1000.0, 2);
-                if (model.DurationMinutes > 0 && model.DistanceKm > 0)
-                    model.PaceMinPerKm = Math.Round(model.DurationMinutes / model.DistanceKm.Value, 2);
+                var durationMin = exercise.DurationSeconds / 60.0;
+                if (durationMin > 0 && model.DistanceKm > 0.01)
+                    model.PaceMinPerKm = Math.Round(durationMin / model.DistanceKm.Value, 2);
             }
         }
 
@@ -149,26 +150,25 @@ public class ExerciseController : Controller
                     Bpm = h.Bpm
                 }).ToList();
 
-                // Calculate heart rate zones (using standard zones based on estimated max HR of 220 - age, default 190)
-                var maxHr = 190;
+                // Heart rate zones matching Samsung Health definitions
                 var zones = new[]
                 {
-                    (Label: "Rest", Min: 0.0, Max: 0.50, Color: "#94a3b8"),
-                    (Label: "Zone 1", Min: 0.50, Max: 0.60, Color: "#60a5fa"),
-                    (Label: "Zone 2", Min: 0.60, Max: 0.70, Color: "#34d399"),
-                    (Label: "Zone 3", Min: 0.70, Max: 0.80, Color: "#fbbf24"),
-                    (Label: "Zone 4", Min: 0.80, Max: 0.90, Color: "#fb923c"),
-                    (Label: "Zone 5", Min: 0.90, Max: 1.10, Color: "#f87171")
+                    (Label: "Rest",   MinBpm: 0,   MaxBpm: 97,  Color: "#94a3b8"),
+                    (Label: "Zone 1", MinBpm: 97,  MaxBpm: 116, Color: "#60a5fa"),
+                    (Label: "Zone 2", MinBpm: 116, MaxBpm: 135, Color: "#34d399"),
+                    (Label: "Zone 3", MinBpm: 135, MaxBpm: 155, Color: "#fbbf24"),
+                    (Label: "Zone 4", MinBpm: 155, MaxBpm: 174, Color: "#fb923c"),
+                    (Label: "Zone 5", MinBpm: 174, MaxBpm: 194, Color: "#f87171")
                 };
 
                 var totalPoints = hrDuringSession.Count;
                 model.HeartRateZones = zones.Select(z =>
                 {
-                    var count = hrDuringSession.Count(h => h.Bpm >= maxHr * z.Min && h.Bpm < maxHr * z.Max);
+                    var count = hrDuringSession.Count(h => h.Bpm >= z.MinBpm && h.Bpm < z.MaxBpm);
                     return new HeartRateZone
                     {
                         Label = z.Label,
-                        Range = $"{(int)(maxHr * z.Min)}-{(int)(maxHr * z.Max)} bpm",
+                        Range = $"{z.MinBpm}-{z.MaxBpm} bpm",
                         Percentage = totalPoints > 0 ? Math.Round(100.0 * count / totalPoints) : 0,
                         Color = z.Color
                     };

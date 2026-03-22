@@ -101,8 +101,8 @@
 
 .exd-score-ring {
     position: relative;
-    width: 140px;
-    height: 140px;
+    width: 150px;
+    height: 150px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -125,13 +125,13 @@
 }
 
 .exd-score-label {
-    font-size: 0.68rem;
-    font-weight: 600;
+    font-size: 0.65rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
     color: var(--text-muted);
     z-index: 1;
-    margin-top: 0.15rem;
+    margin-top: 0.1rem;
 }
 
 /* ── Metric Cards ─────────────────────────────────────────── */

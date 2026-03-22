@@ -1,0 +1,256 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Brand gradient: emerald → green -->
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="50%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#4ade80"/>
+    </linearGradient>
+    <linearGradient id="gradReverse" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4ade80"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="pulseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#059669" stop-opacity="0.2"/>
+      <stop offset="40%" stop-color="#34d399"/>
+      <stop offset="60%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#059669" stop-opacity="0.2"/>
+    </linearGradient>
+    <radialGradient id="nodeGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#34d399" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#34d399" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#059669" stop-opacity="0.25"/>
+      <stop offset="60%" stop-color="#059669" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#059669" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Glow filter -->
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="tinyGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Clip for pulse reveal -->
+    <clipPath id="heartClip">
+      <path d="M256 430 C256 430, 68 296, 68 192 C68 118, 128 78, 184 108
+               C216 125, 242 158, 256 178 C270 158, 296 125, 328 108
+               C384 78, 444 118, 444 192 C444 296, 256 430, 256 430Z"/>
+    </clipPath>
+  </defs>
+
+  <style>
+    @keyframes pulseRing {
+      0% { r: 130; opacity: 0.15; }
+      50% { r: 160; opacity: 0; }
+      100% { r: 130; opacity: 0.15; }
+    }
+    @keyframes pulseRing2 {
+      0% { r: 155; opacity: 0.08; }
+      50% { r: 185; opacity: 0; }
+      100% { r: 155; opacity: 0.08; }
+    }
+    @keyframes ecgDash {
+      0% { stroke-dashoffset: 800; }
+      100% { stroke-dashoffset: 0; }
+    }
+    @keyframes heartBeat {
+      0%, 100% { transform: scale(1); }
+      8% { transform: scale(1.05); }
+      14% { transform: scale(0.98); }
+      20% { transform: scale(1.02); }
+      26% { transform: scale(1); }
+    }
+    @keyframes nodeFloat {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+    @keyframes sparkle {
+      0%, 100% { opacity: 0; transform: scale(0.5); }
+      50% { opacity: 1; transform: scale(1); }
+    }
+    @keyframes orbitSpin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .pulse-ring { animation: pulseRing 3s ease-in-out infinite; }
+    .pulse-ring-2 { animation: pulseRing2 3s ease-in-out infinite 0.8s; }
+    .heart-group { 
+      transform-origin: 256px 260px; 
+      animation: heartBeat 2.4s ease-in-out infinite; 
+    }
+    .ecg-line { 
+      stroke-dasharray: 800; 
+      animation: ecgDash 2.2s ease-out forwards; 
+    }
+    .node { animation: nodeFloat 3s ease-in-out infinite; }
+    .node-d1 { animation-delay: 0s; }
+    .node-d2 { animation-delay: 0.5s; }
+    .node-d3 { animation-delay: 1s; }
+    .node-d4 { animation-delay: 1.5s; }
+    .node-d5 { animation-delay: 2s; }
+    .sparkle { animation: sparkle 2.5s ease-in-out infinite; }
+    .spark-d1 { animation-delay: 0.3s; }
+    .spark-d2 { animation-delay: 0.8s; }
+    .spark-d3 { animation-delay: 1.6s; }
+    .spark-d4 { animation-delay: 2.1s; }
+    .orbit { 
+      transform-origin: 256px 256px; 
+      animation: orbitSpin 20s linear infinite; 
+    }
+    .orbit-reverse { 
+      transform-origin: 256px 256px; 
+      animation: orbitSpin 28s linear infinite reverse; 
+    }
+  </style>
+
+  <!-- Background glow -->
+  <circle cx="256" cy="260" r="200" fill="url(#centerGlow)"/>
+
+  <!-- Pulsing rings -->
+  <circle class="pulse-ring" cx="256" cy="260" r="130" fill="none" stroke="#059669" stroke-width="1"/>
+  <circle class="pulse-ring-2" cx="256" cy="260" r="155" fill="none" stroke="#34d399" stroke-width="0.6"/>
+
+  <!-- Orbital ring 1: thin dashed -->
+  <g class="orbit" opacity="0.2">
+    <circle cx="256" cy="256" r="210" fill="none" stroke="url(#grad)" stroke-width="0.8" stroke-dasharray="4 12"/>
+  </g>
+
+  <!-- Orbital ring 2: opposite direction -->
+  <g class="orbit-reverse" opacity="0.12">
+    <circle cx="256" cy="256" r="230" fill="none" stroke="url(#gradReverse)" stroke-width="0.5" stroke-dasharray="2 18"/>
+  </g>
+
+  <!-- Neural connection lines (circuit/data motif) -->
+  <g opacity="0.18" stroke="url(#grad)" stroke-width="1" fill="none">
+    <!-- Top-left cluster -->
+    <line x1="120" y1="100" x2="170" y2="140"/>
+    <line x1="100" y1="140" x2="170" y2="140"/>
+    <line x1="170" y1="140" x2="195" y2="175"/>
+    <!-- Top-right cluster -->
+    <line x1="392" y1="100" x2="342" y2="140"/>
+    <line x1="412" y1="140" x2="342" y2="140"/>
+    <line x1="342" y1="140" x2="317" y2="175"/>
+    <!-- Bottom-left -->
+    <line x1="90" y1="320" x2="140" y2="310"/>
+    <line x1="140" y1="310" x2="170" y2="340"/>
+    <!-- Bottom-right -->
+    <line x1="422" y1="320" x2="372" y2="310"/>
+    <line x1="372" y1="310" x2="342" y2="340"/>
+    <!-- Bottom center -->
+    <line x1="210" y1="410" x2="256" y2="430"/>
+    <line x1="302" y1="410" x2="256" y2="430"/>
+  </g>
+
+  <!-- Neural nodes (data points) -->
+  <g>
+    <circle class="node node-d1" cx="120" cy="100" r="3.5" fill="#34d399" filter="url(#tinyGlow)"/>
+    <circle class="node node-d2" cx="100" cy="140" r="2.5" fill="#4ade80"/>
+    <circle class="node node-d3" cx="170" cy="140" r="3" fill="#059669" filter="url(#tinyGlow)"/>
+    <circle class="node node-d4" cx="392" cy="100" r="3.5" fill="#34d399" filter="url(#tinyGlow)"/>
+    <circle class="node node-d5" cx="412" cy="140" r="2.5" fill="#4ade80"/>
+    <circle class="node node-d1" cx="342" cy="140" r="3" fill="#059669" filter="url(#tinyGlow)"/>
+    <circle class="node node-d3" cx="90" cy="320" r="2.5" fill="#34d399"/>
+    <circle class="node node-d4" cx="422" cy="320" r="2.5" fill="#34d399"/>
+    <circle class="node node-d2" cx="140" cy="310" r="3" fill="#4ade80" filter="url(#tinyGlow)"/>
+    <circle class="node node-d5" cx="372" cy="310" r="3" fill="#4ade80" filter="url(#tinyGlow)"/>
+    <circle class="node node-d1" cx="210" cy="410" r="2.5" fill="#059669"/>
+    <circle class="node node-d3" cx="302" cy="410" r="2.5" fill="#059669"/>
+  </g>
+
+  <!-- Main heart shape group (animated beat) -->
+  <g class="heart-group">
+    <!-- Heart shape: filled gradient with low opacity for depth -->
+    <path d="M256 420 C256 420, 76 290, 76 192 C76 122, 132 84, 186 112
+             C216 128, 242 158, 256 178 C270 158, 296 128, 326 112
+             C380 84, 436 122, 436 192 C436 290, 256 420, 256 420Z"
+          fill="url(#grad)" opacity="0.08"/>
+
+    <!-- Heart outline: bold stroke -->
+    <path d="M256 410 C256 410, 82 284, 82 192 C82 126, 134 90, 186 116
+             C214 130, 240 158, 256 178 C272 158, 298 130, 326 116
+             C378 90, 430 126, 430 192 C430 284, 256 410, 256 410Z"
+          fill="none" stroke="url(#grad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"
+          filter="url(#glow)" opacity="0.5"/>
+
+    <!-- Heart outline: crisp inner -->
+    <path d="M256 405 C256 405, 88 280, 88 194 C88 130, 138 96, 186 120
+             C212 133, 238 158, 256 178 C274 158, 300 133, 326 120
+             C374 96, 424 130, 424 194 C424 280, 256 405, 256 405Z"
+          fill="none" stroke="url(#grad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- ECG / Heartbeat pulse line (the hero element) -->
+  <g class="heart-group">
+    <polyline class="ecg-line"
+              points="50,260 130,260 165,260 185,260 200,258 210,262 
+                      218,250 226,240 232,260 238,290 244,310 
+                      250,220 256,160 262,220 
+                      268,310 274,290 280,260 286,240 294,250
+                      302,262 312,258 327,260 347,260 382,260 462,260"
+              fill="none" stroke="url(#pulseGrad)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"
+              filter="url(#glow)"/>
+    
+    <!-- Crisp ECG overlay -->
+    <polyline points="50,260 130,260 165,260 185,260 200,258 210,262 
+                      218,250 226,240 232,260 238,290 244,310 
+                      250,220 256,160 262,220 
+                      268,310 274,290 280,260 286,240 294,250
+                      302,262 312,258 327,260 347,260 382,260 462,260"
+             fill="none" stroke="url(#grad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Central peak energy burst -->
+  <g class="heart-group" opacity="0.6">
+    <circle cx="256" cy="160" r="8" fill="url(#nodeGlow)"/>
+    <circle cx="256" cy="160" r="3" fill="#34d399" filter="url(#tinyGlow)"/>
+  </g>
+
+  <!-- ECG endpoint nodes -->
+  <circle cx="50" cy="260" r="3" fill="#059669" opacity="0.4"/>
+  <circle cx="462" cy="260" r="3" fill="#34d399" opacity="0.4"/>
+
+  <!-- Sparkle accents -->
+  <g>
+    <circle class="sparkle spark-d1" cx="195" cy="130" r="2" fill="#34d399" filter="url(#tinyGlow)"/>
+    <circle class="sparkle spark-d2" cx="320" cy="125" r="2" fill="#34d399" filter="url(#tinyGlow)"/>
+    <circle class="sparkle spark-d3" cx="155" cy="230" r="1.5" fill="#4ade80"/>
+    <circle class="sparkle spark-d4" cx="358" cy="228" r="1.5" fill="#4ade80"/>
+  </g>
+
+  <!-- AI "nodes" on the ECG at key inflection points -->
+  <g class="heart-group" opacity="0.8">
+    <circle cx="244" cy="310" r="3.5" fill="#059669" filter="url(#tinyGlow)"/>
+    <circle cx="268" cy="310" r="3.5" fill="#059669" filter="url(#tinyGlow)"/>
+    <circle cx="226" cy="240" r="3" fill="#4ade80" filter="url(#tinyGlow)"/>
+    <circle cx="286" cy="240" r="3" fill="#4ade80" filter="url(#tinyGlow)"/>
+  </g>
+
+  <!-- Dumbbell crossbar integrated into the ECG baseline -->
+  <g opacity="0.15">
+    <!-- Left plate -->
+    <rect x="54" y="248" width="16" height="24" rx="4" fill="url(#grad)"/>
+    <!-- Right plate -->
+    <rect x="442" y="248" width="16" height="24" rx="4" fill="url(#grad)"/>
+    <!-- Bar -->
+    <rect x="70" y="257" width="372" height="6" rx="3" fill="url(#grad)"/>
+  </g>
+</svg>

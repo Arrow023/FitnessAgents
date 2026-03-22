@@ -64,7 +64,7 @@ public class DiaryController : Controller
                 // Strip diet portion for display (everything after ---\n)
                 var sepIdx = workoutMd.IndexOf("\n---\n", StringComparison.Ordinal);
                 var cleanMd = sepIdx > 0 ? workoutMd[..sepIdx] : workoutMd;
-                workoutHtml = MarkdownStylingHelper.RenderToEmailHtml(cleanMd);
+                workoutHtml = MarkdownStylingHelper.RenderToWebHtml(cleanMd);
             }
         }
 

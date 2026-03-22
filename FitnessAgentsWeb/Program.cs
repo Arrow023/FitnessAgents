@@ -68,6 +68,7 @@ builder.Services.AddSingleton<IEmbeddingService, EmbeddingService>();
 builder.Services.AddSingleton<IPlanVectorStore, QdrantPlanVectorStore>();
 
 // Async plan generation infrastructure
+builder.Services.AddSingleton<IAppNotificationStore, AppNotificationStore>();
 builder.Services.AddSingleton<IPlanGenerationTracker, PlanGenerationTracker>();
 builder.Services.AddSingleton(Channel.CreateBounded<PlanGenerationJob>(new BoundedChannelOptions(10)
 {

@@ -12,11 +12,16 @@ namespace FitnessAgentsWeb.Controllers
     {
         private readonly IAiOrchestratorService _orchestrator;
         private readonly IStorageRepository _storageRepository;
+        private readonly IAppNotificationStore _notifications;
 
-        public WebhooksController(IAiOrchestratorService orchestrator, IStorageRepository storageRepository)
+        public WebhooksController(
+            IAiOrchestratorService orchestrator,
+            IStorageRepository storageRepository,
+            IAppNotificationStore notifications)
         {
             _orchestrator = orchestrator;
             _storageRepository = storageRepository;
+            _notifications = notifications;
         }
 
         [HttpPost("/api/webhooks/{userId}/generate-workout")]
@@ -60,6 +65,16 @@ namespace FitnessAgentsWeb.Controllers
             if (payload != null)
             {
                 await _orchestrator.AppendHealthDataAsync(userId, payload);
+
+                _notifications.Push(new AppNotification
+                {
+                    UserId = userId,
+                    Title = "Health Data Received",
+                    Message = "New health data has been synced from your device.",
+                    Type = NotificationType.HealthDataReceived,
+                    Icon = "fa-solid fa-heart-pulse",
+                    Link = "/Overview"
+                });
             }
 
             return Ok("Data received and saved successfully.");

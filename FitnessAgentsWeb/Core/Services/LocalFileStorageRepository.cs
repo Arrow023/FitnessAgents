@@ -148,6 +148,11 @@ namespace FitnessAgentsWeb.Core.Services
             return Task.CompletedTask;
         }
 
+        public Task DeleteUserAsync(string userId)
+        {
+            return Task.CompletedTask;
+        }
+
         public Task<DietPlan?> GetLatestDietAsync(string userId)
         {
             return Task.FromResult<DietPlan?>(null);

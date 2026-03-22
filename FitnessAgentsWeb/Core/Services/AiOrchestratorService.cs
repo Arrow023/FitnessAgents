@@ -549,43 +549,74 @@ namespace FitnessAgentsWeb.Core.Services
             return sb.ToString();
         }
 
-        /// <summary>
-        /// Checks if a weekly digest should be generated for the previous week.
-        /// Generates, embeds, and stores the digest if it doesn't exist yet.
-        /// </summary>
-        private async Task TryGenerateWeeklyDigestAsync(string userId, DateTime appNow, IStorageRepository storageRepo)
+        public async Task<bool> TriggerWeeklyDigestAsync(string userId)
         {
             try
             {
-                // Calculate last week's Monday
+                string tzId = _configProvider.GetAppTimezone();
+                var appNow = TimezoneHelper.GetAppNow(tzId);
+                var storageRepo = _storageFactory.Create();
+
+                await TryGenerateWeeklyDigestAsync(userId, appNow, storageRepo, force: true);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Orchestrator] Manual weekly digest trigger failed for {UserId}", userId);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Checks if a weekly digest should be generated.
+        /// When force=true (manual trigger), uses the current week; otherwise uses the previous completed week.
+        /// Generates, embeds, and stores the digest if it doesn't exist yet.
+        /// </summary>
+        private async Task TryGenerateWeeklyDigestAsync(string userId, DateTime appNow, IStorageRepository storageRepo, bool force = false)
+        {
+            try
+            {
                 var today = appNow.Date;
                 int daysSinceMonday = ((int)today.DayOfWeek + 6) % 7; // Mon=0, Tue=1, ..., Sun=6
                 var thisMonday = today.AddDays(-daysSinceMonday);
-                var lastMonday = thisMonday.AddDays(-7);
-                var lastSunday = thisMonday.AddDays(-1);
 
-                string weekStart = lastMonday.ToString("yyyy-MM-dd");
+                DateTime weekMonday;
+                DateTime weekEndDate;
 
-                // Check if digest already exists for last week
+                if (force)
+                {
+                    // Manual trigger: use the current week (thisMonday to today)
+                    weekMonday = thisMonday;
+                    weekEndDate = today;
+                }
+                else
+                {
+                    // Automatic: use the previous completed week
+                    weekMonday = thisMonday.AddDays(-7);
+                    weekEndDate = thisMonday.AddDays(-1);
+                }
+
+                string weekStart = weekMonday.ToString("yyyy-MM-dd");
+
+                // Check if digest already exists for this week
                 var existingDigest = await storageRepo.GetWeeklyDigestAsync(userId, weekStart);
-                if (existingDigest != null)
+                if (existingDigest != null && !force)
                     return; // Already generated
 
-                // Load diary entries for last week (need 14 days and filter)
                 var allEntries = await storageRepo.GetRecentDiaryEntriesAsync(userId, 14);
                 var weekEntries = allEntries
-                    .Where(e => DateTime.TryParse(e.Date, out var d) && d >= lastMonday && d <= lastSunday)
+                    .Where(e => DateTime.TryParse(e.Date, out var d) && d >= weekMonday && d <= weekEndDate)
                     .OrderBy(e => e.Date)
                     .ToList();
 
-                if (weekEntries.Count < 2)
+                if (weekEntries.Count < 1 && force || weekEntries.Count < 2 && !force)
                 {
                     _logger.LogInformation("[Orchestrator] Skipping weekly digest for {UserId} — only {Count} diary entries in week of {Week}",
                         userId, weekEntries.Count, weekStart);
                     return;
                 }
 
-                var digest = BuildWeeklyDigest(userId, weekStart, lastSunday.ToString("yyyy-MM-dd"), weekEntries);
+                var digest = BuildWeeklyDigest(userId, weekStart, weekEndDate.ToString("yyyy-MM-dd"), weekEntries);
 
                 // Save to Firebase
                 await storageRepo.SaveWeeklyDigestAsync(userId, digest);
@@ -599,7 +630,7 @@ namespace FitnessAgentsWeb.Core.Services
                     {
                         Id = $"{userId}_{weekStart}_digest",
                         UserId = userId,
-                        PlanDate = lastMonday,
+                        PlanDate = weekMonday,
                         PlanType = "diary_digest",
                         MuscleGroup = "",
                         PlanJson = JsonSerializer.Serialize(digest),

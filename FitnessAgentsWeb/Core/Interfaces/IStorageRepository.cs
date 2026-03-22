@@ -21,6 +21,7 @@ namespace FitnessAgentsWeb.Core.Interfaces
         Task<System.Collections.Generic.Dictionary<string, UserProfile>> GetAllUserProfilesAsync();
         Task<UserProfile?> GetUserProfileAsync(string userId);
         Task SaveUserProfileAsync(string userId, UserProfile profile);
+        Task DeleteUserAsync(string userId);
 
         Task<DietPlan?> GetLatestDietAsync(string userId);
         Task SaveLatestDietAsync(string userId, DietPlan diet);

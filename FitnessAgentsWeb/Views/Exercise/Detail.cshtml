@@ -5,9 +5,8 @@
     string FormatPace(double? pace)
     {
         if (pace == null || pace <= 0) return "--";
-        var totalSeconds = (int)(pace.Value * 60);
-        var mins = totalSeconds / 60;
-        var secs = totalSeconds % 60;
+        var mins = (int)pace.Value;
+        var secs = (int)((pace.Value - mins) * 60);
         return $"{mins}:{secs:D2}/km";
     }
 }
@@ -199,6 +198,10 @@
                 const data = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.HeartRateTimeline.Select(h => h.Bpm)));
                 const avg = @(Model.AvgHeartRate ?? 0);
 
+                const rootStyles = getComputedStyle(document.documentElement);
+                const tickColor = rootStyles.getPropertyValue('--text-muted').trim() || '#a1a1aa';
+                const gridColor = rootStyles.getPropertyValue('--border-light').trim() || 'rgba(148, 163, 184, 0.08)';
+
                 const ctx = document.getElementById('hrChart').getContext('2d');
                 const gradient = ctx.createLinearGradient(0, 0, 0, 200);
                 gradient.addColorStop(0, 'rgba(239, 68, 68, 0.35)');
@@ -253,7 +256,7 @@
                             x: {
                                 display: true,
                                 ticks: {
-                                    color: 'var(--text-muted, #94a3b8)',
+                                    color: tickColor,
                                     maxTicksLimit: 5,
                                     font: { size: 10, family: 'Sora' }
                                 },
@@ -262,12 +265,12 @@
                             y: {
                                 display: true,
                                 ticks: {
-                                    color: 'var(--text-muted, #94a3b8)',
+                                    color: tickColor,
                                     font: { size: 10, family: 'Sora' },
                                     stepSize: 10
                                 },
                                 grid: {
-                                    color: 'rgba(148, 163, 184, 0.08)',
+                                    color: gridColor,
                                     drawBorder: false
                                 }
                             }

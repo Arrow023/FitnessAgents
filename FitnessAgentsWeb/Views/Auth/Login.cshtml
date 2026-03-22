@@ -15,21 +15,22 @@
     <!-- Left: Form -->
     <div class="auth-form-side">
         <div class="auth-form-container fade-up">
-            <div style="margin-bottom: 2.5rem;">
-                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2rem;">
-                    <div style="width: 44px; height: 44px; border-radius: 12px; background: var(--primary-gradient); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px var(--primary-glow);">
-                        <i class="fa-solid fa-heart-pulse" style="color: #fff; font-size: 1.2rem;"></i>
+            <div class="auth-header">
+                <div class="auth-brand">
+                    <div class="auth-brand-icon">
+                        <img src="~/images/favicon-light.svg" alt="FitnessAgents" class="show-light" />
+                        <img src="~/images/favicon-dark.svg" alt="FitnessAgents" class="show-dark" />
                     </div>
-                    <span style="font-family: 'Sora', sans-serif; font-weight: 800; font-size: 1.4rem; color: var(--text);">FitnessAgents</span>
+                    <span class="auth-brand-name">FitnessAgents</span>
                 </div>
-                <h1 style="font-family: 'Sora', sans-serif; font-size: 2rem; font-weight: 800; margin: 0 0 0.5rem; color: var(--text); letter-spacing: -0.03em;">Welcome back</h1>
-                <p style="color: var(--text-secondary); margin: 0; font-size: 1rem;">Sign in to access your AI-powered fitness dashboard.</p>
+                <h1 class="auth-title">Welcome back</h1>
+                <p class="auth-subtitle">Sign in to access your AI-powered fitness dashboard.</p>
             </div>
 
             @if (Model?.ErrorMessage != null)
             {
-                <div style="background: var(--accent-red-bg); border: 1px solid var(--accent-red); color: var(--accent-red); padding: 0.75rem 1rem; border-radius: var(--radius-md); margin-bottom: 1.25rem; font-size: 0.9rem;">
-                    <i class="fa-solid fa-circle-exclamation" style="margin-right: 0.5rem;"></i>@Model.ErrorMessage
+                <div class="auth-error">
+                    <i class="fa-solid fa-circle-exclamation"></i>@Model.ErrorMessage
                 </div>
             }
 
@@ -42,29 +43,58 @@
                     <label class="form-label">Password</label>
                     <input type="password" name="password" required placeholder="••••••••" class="form-control" />
                 </div>
-                <button type="submit" class="btn btn-block btn-lg" style="margin-top: 0.5rem;">
-                    <i class="fa-solid fa-arrow-right-to-bracket" style="margin-right: 0.5rem;"></i>Sign In
+                <button type="submit" class="btn btn-block btn-lg auth-submit-btn">
+                    <i class="fa-solid fa-arrow-right-to-bracket"></i>Sign In
                 </button>
             </form>
 
-            <p style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-secondary);">
-                Open-source AI Fitness Assistant &mdash; <a href="https://github.com" style="color: var(--primary); text-decoration: none; font-weight: 600;">View on GitHub</a>
+            <p class="auth-footer">
+                Open-source AI Fitness Assistant &mdash; <a href="https://github.com">View on GitHub</a>
             </p>
         </div>
     </div>
 
-    <!-- Right: Illustration -->
+    <!-- Right: Dark atmospheric illustration -->
     <div class="auth-illustration-side">
-        <div style="text-align: center; max-width: 380px; position: relative; z-index: 1;">
-            <i class="fa-solid fa-dumbbell" style="font-size: 4rem; color: rgba(255,255,255,0.9); margin-bottom: 1.5rem; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2));"></i>
-            <h2 style="font-family: 'Sora', sans-serif; font-size: 1.8rem; font-weight: 800; color: #fff; margin: 0 0 0.75rem; letter-spacing: -0.02em;">Your AI Fitness Coach</h2>
-            <p style="color: rgba(255,255,255,0.8); font-size: 1.05rem; line-height: 1.6; margin: 0;">
+        <!-- Grid pattern overlay -->
+        <svg class="auth-grid-pattern" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+            <defs>
+                <pattern id="authGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(52,211,153,0.06)" stroke-width="0.5"/>
+                </pattern>
+                <radialGradient id="authFade" cx="50%" cy="50%" r="60%">
+                    <stop offset="0%" stop-color="white"/>
+                    <stop offset="100%" stop-color="black"/>
+                </radialGradient>
+                <mask id="authMask">
+                    <rect width="400" height="400" fill="url(#authFade)"/>
+                </mask>
+            </defs>
+            <rect width="400" height="400" fill="url(#authGrid)" mask="url(#authMask)"/>
+        </svg>
+
+        <div class="auth-illustration-content">
+            <div class="auth-logo-ring">
+                <img src="~/images/logo-light.svg" alt="FitnessAgents" class="auth-logo-img show-light" />
+                <img src="~/images/logo-dark.svg" alt="FitnessAgents" class="auth-logo-img show-dark" />
+            </div>
+            <h2 class="auth-hero-title">Your AI Fitness Coach</h2>
+            <p class="auth-hero-text">
                 Personalized workout and diet plans generated daily using your real health data and body composition.
             </p>
-            <div style="margin-top: 2rem; display: flex; justify-content: center; gap: 2rem; color: rgba(255,255,255,0.7); font-size: 0.9rem;">
-                <div style="transition: transform 0.2s;"><i class="fa-solid fa-brain" style="display: block; font-size: 1.5rem; color: rgba(255,255,255,0.9); margin-bottom: 0.5rem;"></i>AI Powered</div>
-                <div style="transition: transform 0.2s;"><i class="fa-solid fa-chart-line" style="display: block; font-size: 1.5rem; color: rgba(255,255,255,0.9); margin-bottom: 0.5rem;"></i>Data Driven</div>
-                <div style="transition: transform 0.2s;"><i class="fa-solid fa-lock-open" style="display: block; font-size: 1.5rem; color: rgba(255,255,255,0.9); margin-bottom: 0.5rem;"></i>Open Source</div>
+            <div class="auth-features">
+                <div class="auth-feature-item">
+                    <div class="auth-feature-icon"><i class="fa-solid fa-brain"></i></div>
+                    <span>AI Powered</span>
+                </div>
+                <div class="auth-feature-item">
+                    <div class="auth-feature-icon"><i class="fa-solid fa-chart-line"></i></div>
+                    <span>Data Driven</span>
+                </div>
+                <div class="auth-feature-item">
+                    <div class="auth-feature-icon"><i class="fa-solid fa-lock-open"></i></div>
+                    <span>Open Source</span>
+                </div>
             </div>
         </div>
     </div>

@@ -296,6 +296,22 @@ namespace FitnessAgentsWeb.Core.Services
             }
         }
 
+        public async Task DeleteUserAsync(string userId)
+        {
+            userId = Norm(userId);
+            try
+            {
+                await _firebaseClient
+                    .Child("users")
+                    .Child(userId)
+                    .DeleteAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"[FirebaseStorage] Failed deleting user {userId}");
+            }
+        }
+
         // --- DIET PLAN ---
         public async Task<DietPlan?> GetLatestDietAsync(string userId)
         {

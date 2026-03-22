@@ -7,22 +7,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FirebaseAdmin" Version="3.4.0" />
     <PackageReference Include="FirebaseDatabase.net" Version="5.0.0" />
-    <PackageReference Include="Google.Apis.Auth" Version="1.73.0" />
-    <PackageReference Include="Google.Cloud.Firestore" Version="4.2.0" />
     <PackageReference Include="Markdig" Version="1.1.1" />
     <PackageReference Include="Qdrant.Client" Version="1.12.0" />
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
 	<PackageReference Include="Microsoft.Agents.AI" Version="1.0.0-rc4" />
 	<PackageReference Include="Microsoft.Agents.AI.Workflows" Version="1.0.0-rc4" />
 	<PackageReference Include="Microsoft.Extensions.AI" Version="10.3.0" />
 	<PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="10.3.0" />
 	<PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.3.0" />
 	<PackageReference Include="OpenAI" Version="2.9.1" />
-    <!-- Replaced Serilog with built-in file logger provider implemented in-project -->
   </ItemGroup>
 
   <ItemGroup>

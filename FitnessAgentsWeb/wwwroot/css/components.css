@@ -30,7 +30,7 @@
 }
 
 [data-theme="dark"] .card-hover:hover {
-    box-shadow: var(--shadow-lg), 0 0 20px rgba(20, 184, 166, 0.04);
+    box-shadow: var(--shadow-lg), 0 0 20px rgba(52, 211, 153, 0.06);
 }
 
 .card-header {
@@ -329,10 +329,10 @@ select.form-control {
     font-family: 'DM Sans', sans-serif;
     font-size: 0.74rem;
     font-weight: 600;
-    color: var(--text-primary);
+    color: var(--text);
 }
 .field-hint strong {
-    color: var(--text-primary);
+    color: var(--text);
     font-weight: 600;
 }
 .field-hint--warn {
@@ -426,7 +426,7 @@ select.form-control {
 }
 
 [data-theme="dark"] .workout-card:hover {
-    border-color: rgba(20, 184, 166, 0.15);
+    border-color: rgba(52, 211, 153, 0.15);
 }
 
 .workout-card-thumb {
@@ -499,7 +499,7 @@ select.form-control {
 }
 
 [data-theme="dark"] .diet-card:hover {
-    border-color: rgba(20, 184, 166, 0.12);
+    border-color: rgba(52, 211, 153, 0.12);
 }
 
 .diet-card-header {
@@ -724,35 +724,85 @@ select.form-control {
 
 .plan-content h1, .plan-content h2, .plan-content h3 {
     color: var(--text);
+    font-family: 'Sora', sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.plan-content h2 {
+    font-size: 1.15rem;
+    text-transform: uppercase;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 0.5rem;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+
+.plan-content h3 {
+    font-size: 1rem;
+    text-transform: uppercase;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.plan-content a {
+    color: var(--primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-color: color-mix(in srgb, var(--primary) 40%, transparent);
+    transition: color 0.2s, text-decoration-color 0.2s;
+}
+
+.plan-content a:hover {
+    color: var(--primary-hover);
+    text-decoration-color: var(--primary-hover);
+}
+
+.plan-content p {
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
 }
 
 .plan-content table {
     width: 100%;
     border-collapse: collapse;
-    margin: 1rem 0;
+    margin: 1rem 0 1.5rem;
     font-size: 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.plan-content thead {
+    background: var(--surface-elevated);
+    border-bottom: 2px solid var(--border);
 }
 
 .plan-content th {
     text-align: left;
-    padding: 0.6rem 0.75rem;
-    background: var(--bg-secondary);
+    padding: 0.75rem 0.9rem;
     color: var(--text);
     font-weight: 700;
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.04em;
+}
+
+.plan-content tr {
+    border-bottom: 1px solid var(--border-light);
 }
 
 .plan-content td {
-    padding: 0.6rem 0.75rem;
+    padding: 0.75rem 0.9rem;
     border-bottom: 1px solid var(--border-light);
     color: var(--text-secondary);
+    vertical-align: top;
 }
 
-.plan-content ul { padding-left: 1.25rem; }
-.plan-content li { margin-bottom: 0.5rem; }
-.plan-content strong { color: var(--text); }
+.plan-content ul { padding-left: 1.25rem; margin-bottom: 1.5rem; }
+.plan-content li { margin-bottom: 0.65rem; color: var(--text-secondary); line-height: 1.6; }
+.plan-content li strong { color: var(--text); }
+.plan-content strong { color: var(--text); font-weight: 700; }
 
 /* ── Animation Utilities ─────────────────────────────────── */
 .fade-up {
@@ -1660,7 +1710,7 @@ select.form-control {
 }
 
 /* Dark theme overrides for metric value colors */
-[data-theme="dark"] .inbody-metric--teal .inbody-metric-value { color: #2dd4bf; }
+[data-theme="dark"] .inbody-metric--teal .inbody-metric-value { color: #6ee7b7; }
 [data-theme="dark"] .inbody-metric--orange .inbody-metric-value { color: #fb923c; }
 [data-theme="dark"] .inbody-metric--blue .inbody-metric-value { color: #60a5fa; }
 [data-theme="dark"] .inbody-metric--green .inbody-metric-value { color: #34d399; }

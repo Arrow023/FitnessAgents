@@ -280,9 +280,9 @@ body {
 }
 
 [data-theme="dark"] .nav-link.active {
-    border-color: rgba(20, 184, 166, 0.2);
-    box-shadow: 0 0 20px rgba(20, 184, 166, 0.1);
-    background: rgba(20, 184, 166, 0.12);
+    border-color: rgba(52, 211, 153, 0.2);
+    box-shadow: 0 0 20px rgba(52, 211, 153, 0.1);
+    background: rgba(52, 211, 153, 0.12);
 }
 
 .nav-link.active::before {
@@ -343,7 +343,7 @@ body {
 }
 
 [data-theme="dark"] .sidebar-user {
-    border-color: rgba(20, 184, 166, 0.1);
+    border-color: rgba(52, 211, 153, 0.1);
 }
 
 .sidebar-user-avatar {
@@ -537,6 +537,211 @@ body {
     box-shadow: 0 0 0 3px var(--primary-glow), 0 4px 20px var(--primary-glow);
 }
 
+/* ── Notification Bell & Panel ───────────────────────────── */
+.notif-wrapper {
+    position: relative;
+}
+
+.notif-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--accent-red);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    animation: badgePop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes badgePop {
+    from { transform: scale(0); }
+    to   { transform: scale(1); }
+}
+
+.notif-panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 360px;
+    max-height: 440px;
+    background: var(--surface);
+    backdrop-filter: blur(24px) saturate(1.6);
+    -webkit-backdrop-filter: blur(24px) saturate(1.6);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-xl);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 200;
+    animation: panelIn 0.2s ease;
+}
+
+.notif-panel.open { display: flex; }
+
+@keyframes panelIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.notif-panel-header {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notif-panel-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.notif-mark-all {
+    background: none;
+    border: none;
+    color: var(--primary);
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0;
+}
+
+.notif-mark-all:hover { text-decoration: underline; }
+
+.notif-panel-body {
+    overflow-y: auto;
+    flex: 1;
+    max-height: 370px;
+}
+
+.notif-empty {
+    padding: 2.5rem 1rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.notif-item {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.15s;
+}
+
+.notif-item:hover {
+    background: var(--primary-subtle);
+}
+
+.notif-item.unread {
+    background: var(--accent-blue-bg);
+}
+
+.notif-item.unread:hover {
+    background: rgba(59, 130, 246, 0.15);
+}
+
+.notif-item-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--primary-subtle);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.notif-item.unread .notif-item-icon {
+    background: var(--primary-gradient);
+    color: #fff;
+}
+
+.notif-item-body { flex: 1; min-width: 0; }
+
+.notif-item-title {
+    font-weight: 650;
+    font-size: 0.82rem;
+    line-height: 1.3;
+}
+
+.notif-item-msg {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    margin-top: 1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.notif-item-time {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 3px;
+    opacity: 0.7;
+}
+
+.notif-slide-in {
+    animation: notifSlide 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes notifSlide {
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Notification Toast ──────────────────────────────────── */
+.notif-toast {
+    padding: 0.7rem 1.15rem;
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    backdrop-filter: blur(12px) saturate(1.4);
+    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 0.82rem;
+    box-shadow: var(--shadow-lg);
+    animation: toastSlideIn 0.3s ease;
+    transition: opacity 0.3s, transform 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    max-width: 380px;
+}
+
+.notif-toast i {
+    color: var(--primary);
+    font-size: 0.9rem;
+}
+
+@keyframes toastSlideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Responsive: notification panel ──────────────────────── */
+@media (max-width: 480px) {
+    .notif-panel {
+        width: calc(100vw - 2rem);
+        right: -60px;
+    }
+}
+
 /* ── Page Content ────────────────────────────────────────── */
 .page-content {
     flex: 1;
@@ -559,7 +764,7 @@ body {
 }
 
 [data-theme="dark"] .page-title {
-    background: linear-gradient(135deg, #f1f5f9 0%, #14b8a6 50%, #6366f1 100%);
+    background: linear-gradient(135deg, #fafafa 0%, #34d399 50%, #60a5fa 100%);
     background-size: 200% auto;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -624,6 +829,13 @@ body {
     position: relative;
 }
 
+/* ── Theme toggle for images ─────────────────────────────── */
+.show-dark { display: none !important; }
+.show-light { display: block; }
+[data-theme="dark"] .show-dark { display: block !important; }
+[data-theme="dark"] .show-light { display: none !important; }
+
+/* ── Form side ───────────────────────────────────────────── */
 .auth-form-side {
     display: flex;
     align-items: center;
@@ -645,8 +857,84 @@ body {
     box-shadow: var(--shadow-xl);
 }
 
+.auth-header { margin-bottom: 2.5rem; }
+
+.auth-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+}
+
+.auth-brand-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 14px var(--primary-glow);
+    flex-shrink: 0;
+}
+
+.auth-brand-icon img {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.auth-brand-name {
+    font-family: 'Sora', sans-serif;
+    font-weight: 800;
+    font-size: 1.4rem;
+    color: var(--text);
+}
+
+.auth-title {
+    font-family: 'Sora', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    margin: 0 0 0.5rem;
+    color: var(--text);
+    letter-spacing: -0.03em;
+}
+
+.auth-subtitle {
+    color: var(--text-secondary);
+    margin: 0;
+    font-size: 1rem;
+}
+
+.auth-error {
+    background: var(--accent-red-bg);
+    border: 1px solid var(--accent-red);
+    color: var(--accent-red);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    margin-bottom: 1.25rem;
+    font-size: 0.9rem;
+}
+
+.auth-error i { margin-right: 0.5rem; }
+
+.auth-submit-btn i { margin-right: 0.5rem; }
+
+.auth-footer {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.auth-footer a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.auth-footer a:hover { text-decoration: underline; }
+
+/* ── Illustration side — light mode (soft gradient) ──────── */
 .auth-illustration-side {
-    background: var(--primary-gradient);
+    background: linear-gradient(145deg, #ecfdf5 0%, #d1fae5 40%, #a7f3d0 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -660,21 +948,146 @@ body {
     position: absolute;
     inset: 0;
     background:
-        radial-gradient(circle at 30% 70%, rgba(255,255,255,0.15) 0%, transparent 60%),
-        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 40%);
+        radial-gradient(circle at 30% 70%, rgba(5, 150, 105, 0.08) 0%, transparent 60%),
+        radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.06) 0%, transparent 40%);
 }
 
-/* Floating shapes on auth page */
 .auth-illustration-side::after {
     content: '';
     position: absolute;
     width: 200px;
     height: 200px;
-    border: 2px solid rgba(255,255,255,0.15);
+    border: 2px solid rgba(5, 150, 105, 0.10);
     border-radius: 50%;
     top: 15%;
     right: -50px;
     animation: orbFloat 20s ease-in-out infinite alternate;
+}
+
+/* ── Illustration side — dark mode (deep atmospheric) ────── */
+[data-theme="dark"] .auth-illustration-side {
+    background: linear-gradient(145deg, #0a0f0d 0%, #0d1a14 40%, #091210 100%);
+}
+
+[data-theme="dark"] .auth-illustration-side::before {
+    background:
+        radial-gradient(circle at 30% 70%, rgba(52, 211, 153, 0.06) 0%, transparent 60%),
+        radial-gradient(circle at 80% 20%, rgba(74, 222, 128, 0.04) 0%, transparent 40%);
+}
+
+[data-theme="dark"] .auth-illustration-side::after {
+    border-color: rgba(52, 211, 153, 0.08);
+}
+
+/* ── Grid pattern overlay ────────────────────────────────── */
+.auth-grid-pattern {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 1;
+}
+
+[data-theme="dark"] .auth-grid-pattern { opacity: 1.5; }
+
+/* ── Illustration content ────────────────────────────────── */
+.auth-illustration-content {
+    text-align: center;
+    max-width: 420px;
+    position: relative;
+    z-index: 1;
+}
+
+.auth-logo-ring {
+    width: 220px;
+    height: 220px;
+    margin: 0 auto 1.5rem;
+    border-radius: 50%;
+    background: rgba(5, 150, 105, 0.04);
+    border: 1px solid rgba(5, 150, 105, 0.10);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+[data-theme="dark"] .auth-logo-ring {
+    background: rgba(52, 211, 153, 0.04);
+    border-color: rgba(52, 211, 153, 0.10);
+    box-shadow: 0 0 60px rgba(52, 211, 153, 0.06);
+}
+
+.auth-logo-img {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.auth-hero-title {
+    font-family: 'Sora', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #064e3b;
+    margin: 0 0 0.75rem;
+    letter-spacing: -0.02em;
+}
+
+[data-theme="dark"] .auth-hero-title {
+    color: #f0fdf4;
+}
+
+.auth-hero-text {
+    color: #047857;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    margin: 0;
+    opacity: 0.8;
+}
+
+[data-theme="dark"] .auth-hero-text {
+    color: #a1a1aa;
+    opacity: 1;
+}
+
+/* ── Feature pills ───────────────────────────────────────── */
+.auth-features {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.auth-feature-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: #065f46;
+    transition: transform 0.2s;
+}
+
+.auth-feature-item:hover { transform: translateY(-2px); }
+
+[data-theme="dark"] .auth-feature-item { color: #d4d4d8; }
+
+.auth-feature-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(5, 150, 105, 0.08);
+    border: 1px solid rgba(5, 150, 105, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    color: #059669;
+}
+
+[data-theme="dark"] .auth-feature-icon {
+    background: rgba(52, 211, 153, 0.08);
+    border-color: rgba(52, 211, 153, 0.12);
+    color: #34d399;
 }
 
 @media (max-width: 768px) {

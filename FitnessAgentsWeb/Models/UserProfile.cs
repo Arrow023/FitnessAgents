@@ -14,6 +14,7 @@ namespace FitnessAgentsWeb.Models
         public List<string> CookingOils { get; set; } = new();
         public List<string> StapleGrains { get; set; } = new();
         public bool IsActive { get; set; } = true;
+        public bool IsAdmin { get; set; } = false;
         public int Age { get; set; } = 30; // Used for VO2max estimation (220 - Age = HRmax)
 
         public string? WebhookHeaderKey { get; set; }

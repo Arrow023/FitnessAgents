@@ -47,7 +47,7 @@ public class WorkoutController : Controller
         {
             foreach (var kvp in history.PastWorkouts)
             {
-                renderedHtml[kvp.Key] = MarkdownStylingHelper.RenderToEmailHtml(kvp.Value);
+                renderedHtml[kvp.Key] = MarkdownStylingHelper.RenderToWebHtml(kvp.Value);
             }
         }
 
@@ -71,7 +71,7 @@ public class WorkoutController : Controller
 
         if (history is not null && history.PastWorkouts.TryGetValue(day, out var markdown))
         {
-            html = MarkdownStylingHelper.RenderToEmailHtml(markdown);
+            html = MarkdownStylingHelper.RenderToWebHtml(markdown);
         }
 
         var model = new WorkoutDetailViewModel

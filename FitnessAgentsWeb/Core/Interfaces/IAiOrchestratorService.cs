@@ -24,5 +24,10 @@ namespace FitnessAgentsWeb.Core.Interfaces
         /// Re-sends a previously stored diet plan via email.
         /// </summary>
         Task<bool> EmailStoreDietPlanAsync(string userId, DietPlan diet);
+
+        /// <summary>
+        /// Manually triggers weekly diary digest generation for a user.
+        /// </summary>
+        Task<bool> TriggerWeeklyDigestAsync(string userId);
     }
 }

@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - FitnessAgents</title>
+    <link rel="icon" type="image/svg+xml" href="~/images/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
@@ -44,7 +45,10 @@
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <a href="/" class="sidebar-brand">
-                <div class="sidebar-brand-icon"><i class="fa-solid fa-heartbeat"></i></div>
+                <div class="sidebar-brand-icon">
+                    <img src="~/images/favicon-light.svg" alt="FitnessAgents" class="show-light" style="width: 100%; height: 100%; border-radius: inherit;" />
+                    <img src="~/images/favicon-dark.svg" alt="FitnessAgents" class="show-dark" style="width: 100%; height: 100%; border-radius: inherit;" />
+                </div>
                 <span class="sidebar-brand-text">FitnessAgents</span>
             </a>
 
@@ -85,6 +89,10 @@
                     <a href="/Admin/Users" class="nav-link @(activeNav == "users" ? "active" : "")">
                         <span class="nav-link-icon"><i class="fa-solid fa-user-group"></i></span>
                         <span>Users</span>
+                    </a>
+                    <a href="/Admin/Jobs" class="nav-link @(activeNav == "jobs" ? "active" : "")">
+                        <span class="nav-link-icon"><i class="fa-solid fa-bolt"></i></span>
+                        <span>Jobs</span>
                     </a>
                     <a href="/Admin/Settings" class="nav-link @(activeNav == "settings" ? "active" : "")">
                         <span class="nav-link-icon"><i class="fa-solid fa-gear"></i></span>
@@ -137,9 +145,21 @@
                     <button class="topbar-btn" onclick="toggleTheme()" title="Toggle theme" id="themeToggleBtn">
                         <i class="fa-solid fa-sun"></i>
                     </button>
-                    <button class="topbar-btn" title="Notifications">
-                        <i class="fa-solid fa-bell"></i>
-                    </button>
+                    <div class="notif-wrapper" id="notifWrapper">
+                        <button class="topbar-btn" title="Notifications" id="notifBellBtn" onclick="toggleNotifPanel()">
+                            <i class="fa-solid fa-bell"></i>
+                            <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+                        </button>
+                        <div class="notif-panel" id="notifPanel">
+                            <div class="notif-panel-header">
+                                <span class="notif-panel-title">Notifications</span>
+                                <button class="notif-mark-all" id="notifMarkAll" onclick="markAllRead()">Mark all read</button>
+                            </div>
+                            <div class="notif-panel-body" id="notifList">
+                                <div class="notif-empty">No notifications yet</div>
+                            </div>
+                        </div>
+                    </div>
                     @if (User.Identity is not null && User.Identity.IsAuthenticated)
                     {
                         <div class="topbar-avatar">@(User.Identity.Name?.Substring(0, 1).ToUpper() ?? "U")</div>
@@ -202,6 +222,175 @@
     @if (IsSectionDefined("Scripts"))
     {
         @RenderSection("Scripts", required: false)
+    }
+
+    @if (User.Identity is not null && User.Identity.IsAuthenticated)
+    {
+    <script>
+        // ── Notification System ──
+        (function() {
+            var panel = document.getElementById('notifPanel');
+            var badge = document.getElementById('notifBadge');
+            var list  = document.getElementById('notifList');
+            var isOpen = false;
+
+            // Close panel on outside click
+            document.addEventListener('click', function(e) {
+                var wrapper = document.getElementById('notifWrapper');
+                if (wrapper && !wrapper.contains(e.target) && isOpen) {
+                    panel.classList.remove('open');
+                    isOpen = false;
+                }
+            });
+
+            // Toggle panel
+            window.toggleNotifPanel = function() {
+                isOpen = !isOpen;
+                panel.classList.toggle('open', isOpen);
+                if (isOpen) loadNotifications();
+            };
+
+            // Load notifications from API
+            window.loadNotifications = function() {
+                fetch('/api/notifications')
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        renderList(data.notifications || []);
+                        updateBadge(data.unreadCount || 0);
+                    })
+                    .catch(function() {});
+            };
+
+            // Mark all read
+            window.markAllRead = function() {
+                fetch('/api/notifications/read-all', { method: 'POST' })
+                    .then(function() {
+                        updateBadge(0);
+                        document.querySelectorAll('.notif-item.unread').forEach(function(el) {
+                            el.classList.remove('unread');
+                        });
+                    });
+            };
+
+            function updateBadge(count) {
+                if (count > 0) {
+                    badge.textContent = count > 9 ? '9+' : count;
+                    badge.style.display = '';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+
+            function renderList(items) {
+                if (!items.length) {
+                    list.innerHTML = '<div class="notif-empty">No notifications yet</div>';
+                    return;
+                }
+                var html = '';
+                items.forEach(function(n) {
+                    var cls = n.isRead ? 'notif-item' : 'notif-item unread';
+                    var icon = n.icon || 'fa-solid fa-bell';
+                    var ago = timeAgo(n.createdAt);
+                    var link = n.link || '#';
+                    html += '<a href="' + link + '" class="' + cls + '" data-id="' + n.id + '" onclick="markItemRead(\'' + n.id + '\')">'
+                         + '<div class="notif-item-icon"><i class="' + icon + '"></i></div>'
+                         + '<div class="notif-item-body">'
+                         + '<div class="notif-item-title">' + escapeHtml(n.title) + '</div>'
+                         + '<div class="notif-item-msg">' + escapeHtml(n.message) + '</div>'
+                         + '<div class="notif-item-time">' + ago + '</div>'
+                         + '</div></a>';
+                });
+                list.innerHTML = html;
+            }
+
+            // Add single notification to top of list
+            function prependNotification(n) {
+                var existing = list.querySelector('.notif-empty');
+                if (existing) existing.remove();
+
+                var icon = n.icon || 'fa-solid fa-bell';
+                var ago = timeAgo(n.createdAt);
+                var link = n.link || '#';
+                var el = document.createElement('a');
+                el.href = link;
+                el.className = 'notif-item unread notif-slide-in';
+                el.setAttribute('data-id', n.id);
+                el.onclick = function() { markItemRead(n.id); };
+                el.innerHTML = '<div class="notif-item-icon"><i class="' + icon + '"></i></div>'
+                    + '<div class="notif-item-body">'
+                    + '<div class="notif-item-title">' + escapeHtml(n.title) + '</div>'
+                    + '<div class="notif-item-msg">' + escapeHtml(n.message) + '</div>'
+                    + '<div class="notif-item-time">' + ago + '</div>'
+                    + '</div>';
+                list.prepend(el);
+            }
+
+            window.markItemRead = function(id) {
+                fetch('/api/notifications/' + id + '/read', { method: 'POST' });
+                var el = list.querySelector('[data-id="' + id + '"]');
+                if (el) el.classList.remove('unread');
+            };
+
+            function timeAgo(iso) {
+                var diff = (Date.now() - new Date(iso).getTime()) / 1000;
+                if (diff < 60) return 'just now';
+                if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+                if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+                return Math.floor(diff / 86400) + 'd ago';
+            }
+
+            function escapeHtml(s) {
+                var d = document.createElement('div');
+                d.textContent = s || '';
+                return d.innerHTML;
+            }
+
+            // ── SSE connection for real-time push ──
+            if (typeof EventSource !== 'undefined') {
+                var evtSource = new EventSource('/api/notifications/stream');
+
+                evtSource.addEventListener('notification', function(e) {
+                    var n = JSON.parse(e.data);
+                    prependNotification(n);
+
+                    // Show a brief toast
+                    showNotifToast(n);
+                });
+
+                evtSource.addEventListener('unread', function(e) {
+                    var data = JSON.parse(e.data);
+                    updateBadge(data.count);
+                });
+
+                evtSource.onerror = function() {
+                    // Reconnect is automatic with EventSource
+                };
+            }
+
+            function showNotifToast(n) {
+                var container = document.getElementById('globalToastContainer');
+                if (!container) {
+                    container = document.createElement('div');
+                    container.id = 'globalToastContainer';
+                    container.style.cssText = 'position:fixed;bottom:1.5rem;right:1.5rem;z-index:1100;display:flex;flex-direction:column;gap:0.5rem;';
+                    document.body.appendChild(container);
+                }
+                var toast = document.createElement('div');
+                toast.className = 'notif-toast';
+                var icon = n.icon || 'fa-solid fa-bell';
+                toast.innerHTML = '<i class="' + icon + '"></i> <strong>' + escapeHtml(n.title) + '</strong> — ' + escapeHtml(n.message);
+                container.appendChild(toast);
+                setTimeout(function() {
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'translateX(20px)';
+                    setTimeout(function() { toast.remove(); }, 300);
+                }, 4000);
+            }
+
+            // Load initial count on page ready
+            loadNotifications();
+        })();
+    </script>
     }
 </body>
 </html>

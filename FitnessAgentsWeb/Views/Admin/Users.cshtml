@@ -5,8 +5,19 @@
 
 <div class="page-header fade-up">
     <h1 class="page-title">User Management</h1>
-    <p class="page-subtitle">Provision new accounts and manage existing users.</p>
+    <p class="page-subtitle">Provision new accounts, manage roles, and trigger plan generation.</p>
 </div>
+
+@if (TempData["JobResult"] != null)
+{
+    var isSuccess = TempData["JobSuccess"]?.ToString() == "True";
+    <div class="card fade-up" style="margin-bottom: 1rem; padding: 0.75rem 1rem; border-left: 4px solid @(isSuccess ? "var(--accent-green)" : "var(--accent-red)"); background: var(--surface);">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid @(isSuccess ? "fa-circle-check" : "fa-circle-xmark")" style="color: @(isSuccess ? "var(--accent-green)" : "var(--accent-red)");"></i>
+            <span>@TempData["JobResult"]</span>
+        </div>
+    </div>
+}
 
 <div class="grid-2 fade-up" style="align-items: start;">
     <!-- Add New User -->
@@ -49,28 +60,64 @@
                             <div>
                                 <strong style="font-size: 1rem;">@kp.Value.FirstName @kp.Value.LastName</strong>
                                 <span class="badge" style="margin-left: 0.5rem;">@kp.Key</span>
+                                @if (kp.Value.IsAdmin)
+                                {
+                                    <span class="badge" style="margin-left: 0.25rem; background: var(--primary); color: #fff;">Admin</span>
+                                }
                             </div>
-                            <form method="post" asp-controller="Admin" asp-action="ToggleUser" style="margin: 0;">
-                                <input type="hidden" name="userId" value="@kp.Key" />
-                                @if (kp.Value.IsActive)
-                                {
-                                    <button type="submit" class="badge" style="background: var(--accent-green); color: #fff; cursor: pointer; border: none;">Active</button>
-                                }
-                                else
-                                {
-                                    <button type="submit" class="badge" style="background: var(--accent-red); color: #fff; cursor: pointer; border: none;">Disabled</button>
-                                }
-                            </form>
+                            <div style="display: flex; gap: 0.4rem; align-items: center;">
+                                <form method="post" asp-controller="Admin" asp-action="ToggleUser" style="margin: 0;">
+                                    <input type="hidden" name="userId" value="@kp.Key" />
+                                    @if (kp.Value.IsActive)
+                                    {
+                                        <button type="submit" class="badge" style="background: var(--accent-green); color: #fff; cursor: pointer; border: none;" title="Click to disable">Active</button>
+                                    }
+                                    else
+                                    {
+                                        <button type="submit" class="badge" style="background: var(--accent-red); color: #fff; cursor: pointer; border: none;" title="Click to enable">Disabled</button>
+                                    }
+                                </form>
+                            </div>
                         </div>
                         <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
                             <i class="fa-solid fa-envelope" style="width: 16px;"></i> @kp.Value.Email &nbsp;
                             <i class="fa-solid fa-clock" style="width: 16px;"></i> @kp.Value.NotificationTime
                         </div>
-                        <div style="font-size: 0.8rem;">
+                        <div style="font-size: 0.8rem; margin-bottom: 0.75rem;">
                             <span style="font-weight: 700; color: var(--primary); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em;">Webhook</span>
                             <div style="font-family: monospace; background: var(--bg); padding: 0.4rem 0.6rem; border-radius: var(--radius); font-size: 0.8rem; word-break: break-all; margin-top: 0.25rem; border: 1px solid var(--border);">
                                 @ViewBag.BaseUrl/api/webhooks/@kp.Key/generate-workout
                             </div>
+                        </div>
+                        <!-- Actions row -->
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 0.65rem;">
+                            <form method="post" asp-controller="Admin" asp-action="ToggleAdmin" style="margin: 0;">
+                                <input type="hidden" name="userId" value="@kp.Key" />
+                                @if (kp.Value.IsAdmin)
+                                {
+                                    <button type="submit" class="btn" style="font-size: 0.78rem; padding: 0.3rem 0.65rem; background: var(--surface); border: 1px solid var(--border); color: var(--text-secondary);">
+                                        <i class="fa-solid fa-user-shield"></i> Revoke Admin
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="submit" class="btn" style="font-size: 0.78rem; padding: 0.3rem 0.65rem;">
+                                        <i class="fa-solid fa-user-shield"></i> Make Admin
+                                    </button>
+                                }
+                            </form>
+                            <form method="post" asp-controller="Admin" asp-action="GeneratePlans" style="margin: 0;">
+                                <input type="hidden" name="userId" value="@kp.Key" />
+                                <button type="submit" class="btn" style="font-size: 0.78rem; padding: 0.3rem 0.65rem; background: var(--accent-green); border: none; color: #fff;">
+                                    <i class="fa-solid fa-bolt"></i> Generate Plans
+                                </button>
+                            </form>
+                            <form method="post" asp-controller="Admin" asp-action="DeleteUser" style="margin: 0;" onsubmit="return confirm('Are you sure you want to permanently delete user \'@kp.Key\'? This action cannot be undone.');">
+                                <input type="hidden" name="userId" value="@kp.Key" />
+                                <button type="submit" class="btn" style="font-size: 0.78rem; padding: 0.3rem 0.65rem; background: var(--accent-red); border: none; color: #fff;">
+                                    <i class="fa-solid fa-trash"></i> Delete User
+                                </button>
+                            </form>
                         </div>
                     </div>
                 }

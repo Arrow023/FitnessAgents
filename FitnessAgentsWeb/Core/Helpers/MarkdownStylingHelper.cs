@@ -5,6 +5,22 @@ namespace FitnessAgentsWeb.Core.Helpers
 {
     public static class MarkdownStylingHelper
     {
+        /// <summary>
+        /// Renders markdown to HTML for web views. Uses CSS classes instead of inline
+        /// styles so that dark mode theming works correctly via the design-token system.
+        /// </summary>
+        public static string RenderToWebHtml(string markdown)
+        {
+            if (string.IsNullOrEmpty(markdown)) return "";
+
+            var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+            return Markdown.ToHtml(markdown, pipeline);
+        }
+
+        /// <summary>
+        /// Renders markdown to HTML for email delivery. Uses hardcoded inline styles
+        /// because email clients do not support external CSS or CSS variables.
+        /// </summary>
         public static string RenderToEmailHtml(string markdown)
         {
             if (string.IsNullOrEmpty(markdown)) return "";

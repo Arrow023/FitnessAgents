@@ -63,10 +63,11 @@ namespace FitnessAgentsWeb.Controllers
             {
                 if (profile.IsActive && PasswordHasher.VerifyPassword(password, profile.PasswordHash))
                 {
+                    var role = profile.IsAdmin ? "Admin" : "User";
                     var claims = new List<Claim>
                     {
                         new Claim(ClaimTypes.Name, username),
-                        new Claim(ClaimTypes.Role, "User")
+                        new Claim(ClaimTypes.Role, role)
                     };
 
                     var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

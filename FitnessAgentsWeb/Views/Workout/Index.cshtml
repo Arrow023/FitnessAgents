@@ -19,9 +19,11 @@
 <div id="genModal" class="modal-overlay">
     <div class="modal-panel" style="max-width: 440px; text-align: center;">
         <div class="modal-body" style="padding: 2.5rem 2rem;">
-            <div id="genSpinner" style="margin-bottom: 1.5rem;">
-                <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; color: var(--primary);"></i>
+            <div style="margin-bottom: 1.5rem; display: flex; justify-content: center;">
+                <img src="~/images/logo-light.svg" alt="FitnessAgents" class="show-light" style="width: 120px; height: 120px;" />
+                <img src="~/images/logo-dark.svg" alt="FitnessAgents" class="show-dark" style="width: 120px; height: 120px;" />
             </div>
+            <div id="genSpinner" style="display:none;"></div>
             <div id="genIconDone" style="display:none; margin-bottom: 1.5rem;">
                 <i class="fa-solid fa-circle-check" style="font-size: 2.5rem; color: var(--accent-green);"></i>
             </div>
