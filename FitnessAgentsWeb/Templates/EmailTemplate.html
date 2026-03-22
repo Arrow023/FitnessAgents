@@ -3,93 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!--[if mso]>
+    <noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>
+    <![endif]-->
     <style>
-        body, table, td, a {
-            -webkit-text-size-adjust: 100%;
-            -ms-text-size-adjust: 100%;
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-            width: 100% !important;
-            background-color: #f4f4f5;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
+        body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        body { margin: 0; padding: 0; width: 100% !important; }
+        img { border: 0; line-height: 100%; text-decoration: none; -ms-interpolation-mode: bicubic; }
     </style>
 </head>
-<body style="margin: 0; padding: 0; width: 100% !important; background-color: #f4f4f5;">
+<body style="margin: 0; padding: 0; width: 100% !important; background-color: #f0ece4; -webkit-font-smoothing: antialiased;">
 
-    <div style="background-color: #f4f4f5; padding: 40px 15px;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e5e7eb; box-shadow: 0 10px 30px rgba(0,0,0,0.04);">
+<!-- Outer wrapper -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f0ece4;">
+<tr><td align="center" style="padding: 40px 16px;">
 
-            <div style="padding: 45px 40px 30px 40px; text-align: left; border-bottom: 1px solid #f3f4f6;">
-                <div style="display: inline-block; background-color: #000000; color: #ffffff; font-size: 10px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; padding: 4px 10px; border-radius: 4px; margin-bottom: 16px;">Daily Briefing</div>
-                <h1 style="margin: 0 0 8px 0; color: #111827; font-size: 32px; font-weight: 800; letter-spacing: -0.5px;">AI Strength Coach</h1>
-                <p style="margin: 0; color: #6b7280; font-size: 16px; font-weight: 500;">{{DATE}}</p>
-            </div>
+<!-- Main card -->
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.06);">
 
-            <div style="padding: 30px 40px; background-color: #fafafa; border-bottom: 1px solid #f3f4f6; text-align: center; font-size: 0;">
+    <!-- Accent bar -->
+    <tr><td style="height: 5px; background-color: #059669; font-size: 0; line-height: 0;">&nbsp;</td></tr>
 
-                <div style="display: inline-block; width: 100%; max-width: 245px; vertical-align: top; text-align: left; font-size: 14px; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; box-sizing: border-box; margin-bottom: 15px;">
-                    <h3 style="margin: 0 0 15px 0; color: #111827; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">🧬 InBody Scan</h3>
+    <!-- Brand header -->
+    <tr><td style="padding: 32px 40px 20px 40px; border-bottom: 1px solid #e8e4dc;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+                <td width="48" valign="middle" style="padding-right: 14px;">
+                    <img src="cid:logo" width="44" height="44" alt="FitnessAgents" style="display: block; border-radius: 12px; border: 0;">
+                </td>
+                <td valign="middle">
+                    <p style="margin: 0; color: #1a1a1a; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.2;">FitnessAgents</p>
+                    <p style="margin: 2px 0 0 0; color: #059669; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase;">Your AI Coach</p>
+                </td>
+            </tr>
+        </table>
+    </td></tr>
 
-                    <div style="margin-bottom: 15px; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 10px;">
-                        <span style="color: #059669; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Visceral Fat Level</span>
-                        <div style="margin-top: 2px;">
-                            <span style="color: #047857; font-size: 20px; font-weight: 800; font-family: 'Courier New', Courier, monospace;">{{INBODY_VISCERAL}}</span>
-                            <small style="color: #10b981; font-size: 11px; font-weight: 600;">LVL</small>
+    <!-- Section header -->
+    <tr><td style="padding: 20px 40px 24px 40px; border-bottom: 1px solid #e8e4dc;">
+        <div style="display: inline-block; background-color: #059669; color: #ffffff; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 5px 14px; border-radius: 4px;">Daily Briefing</div>
+        <p style="margin: 12px 0 0 0; color: #8c8579; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 14px; font-weight: 500;">{{DATE}}</p>
+    </td></tr>
+
+    <!-- Metrics section -->
+    <tr><td style="padding: 28px 24px; background-color: #faf8f5; border-bottom: 1px solid #e8e4dc;">
+        <!--[if mso]>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td width="262" valign="top">
+        <![endif]-->
+        <div style="display: inline-block; width: 100%; max-width: 262px; vertical-align: top;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border: 1px solid #e8e4dc; border-radius: 12px;">
+                <tr><td style="padding: 22px;">
+                    <p style="margin: 0 0 16px 0; color: #8c8579; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px;">&#x1F9EC; InBody Scan</p>
+
+                    <!-- Visceral fat highlight -->
+                    <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 14px; margin-bottom: 18px;">
+                        <span style="color: #047857; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;">Visceral Fat</span>
+                        <div style="margin-top: 4px;">
+                            <span style="color: #047857; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 28px; font-weight: 700; letter-spacing: -1px;">{{INBODY_VISCERAL}}</span>
+                            <span style="color: #059669; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 10px; font-weight: 600; margin-left: 4px;">LVL</span>
                         </div>
                     </div>
 
-                    <div style="margin-bottom: 10px; color: #6b7280; font-size: 13px;">Body Mass Index <span style="float: right; color: #111827; font-weight: 700;">{{INBODY_BMI}}</span></div>
-                    <div style="margin-bottom: 10px; color: #6b7280; font-size: 13px;">Weight <span style="float: right; color: #111827; font-weight: 700;">{{INBODY_WEIGHT}} kg</span></div>
-                    <div style="margin-bottom: 10px; color: #6b7280; font-size: 13px;">Body Fat <span style="float: right; color: #111827; font-weight: 700;">{{INBODY_BF}}%</span></div>
-                    <div style="margin-bottom: 10px; color: #6b7280; font-size: 13px;">Muscle Mass <span style="float: right; color: #111827; font-weight: 700;">{{INBODY_SMM}} kg</span></div>
+                    <!-- InBody metrics -->
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                        <tr>
+                            <td style="padding: 8px 0; color: #8c8579; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 13px; border-bottom: 1px solid #f0ece4;">BMI</td>
+                            <td style="padding: 8px 0; text-align: right; color: #1a1a1a; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 13px; font-weight: 600; border-bottom: 1px solid #f0ece4;">{{INBODY_BMI}}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; color: #8c8579; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 13px; border-bottom: 1px solid #f0ece4;">Weight</td>
+                            <td style="padding: 8px 0; text-align: right; color: #1a1a1a; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 13px; font-weight: 600; border-bottom: 1px solid #f0ece4;">{{INBODY_WEIGHT}} kg</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; color: #8c8579; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 13px; border-bottom: 1px solid #f0ece4;">Body Fat</td>
+                            <td style="padding: 8px 0; text-align: right; color: #1a1a1a; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 13px; font-weight: 600; border-bottom: 1px solid #f0ece4;">{{INBODY_BF}}%</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; color: #8c8579; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 13px;">Muscle Mass</td>
+                            <td style="padding: 8px 0; text-align: right; color: #1a1a1a; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 13px; font-weight: 600;">{{INBODY_SMM}} kg</td>
+                        </tr>
+                    </table>
 
-                    <div style="color: #6b7280; font-size: 13px; border-top: 1px solid #f3f4f6; margin-top: 10px; padding-top: 10px;">
-                        Training Focus
-                        <span style="float: right; color: #ef4444; font-weight: 700;">{{INBODY_WEAK}}</span>
+                    <!-- Training focus -->
+                    <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid #f0ece4;">
+                        <span style="color: #8c8579; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Focus</span>
+                        <span style="float: right; color: #dc2626; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 12px; font-weight: 700;">{{INBODY_WEAK}}</span>
                     </div>
-                </div>
+                </td></tr>
+            </table>
+        </div>
+        <!--[if mso]>
+        </td>
+        <td width="12"></td>
+        <td width="262" valign="top">
+        <![endif]-->
 
-                <div style="display: inline-block; width: 15px; font-size: 0;"></div>
+        <div style="display: inline-block; width: 12px; font-size: 0;">&nbsp;</div>
 
-                <div style="display: inline-block; width: 100%; max-width: 245px; vertical-align: top; text-align: left; font-size: 14px; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; box-sizing: border-box; margin-bottom: 15px;">
-                    <h3 style="margin: 0 0 15px 0; color: #111827; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">⚡ 24H Vitals</h3>
+        <div style="display: inline-block; width: 100%; max-width: 262px; vertical-align: top;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border: 1px solid #e8e4dc; border-radius: 12px;">
+                <tr><td style="padding: 22px;">
+                    <p style="margin: 0 0 16px 0; color: #8c8579; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px;">&#x26A1; 24H Vitals</p>
 
-                    <div style="margin-bottom: 15px; background-color: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 8px; padding: 10px;">
-                        <span style="color: #7c3aed; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Recovery (HRV)</span>
-                        <div style="margin-top: 2px;">
-                            <span style="color: #4f46e5; font-size: 20px; font-weight: 800; font-family: 'Courier New', Courier, monospace;">{{VITALS_HRV}}</span>
-                            <small style="color: #a78bfa; font-size: 11px; font-weight: 600;">ms</small>
+                    <!-- HRV highlight -->
+                    <div style="background-color: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 10px; padding: 14px; margin-bottom: 18px;">
+                        <span style="color: #6d28d9; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;">Recovery HRV</span>
+                        <div style="margin-top: 4px;">
+                            <span style="color: #6d28d9; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 28px; font-weight: 700; letter-spacing: -1px;">{{VITALS_HRV}}</span>
+                            <span style="color: #7c3aed; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 10px; font-weight: 600; margin-left: 4px;">ms</span>
                         </div>
                     </div>
 
-                    <div style="margin-bottom: 10px; color: #6b7280; font-size: 13px;">Total Sleep <span style="float: right; color: #111827; font-weight: 700;">{{VITALS_SLEEP}}</span></div>
-                    <div style="margin-bottom: 10px; color: #6b7280; font-size: 13px;">Deep Sleep <span style="float: right; color: #4f46e5; font-weight: 700;">{{VITALS_DEEP}}</span></div>
-                    <div style="margin-bottom: 10px; color: #6b7280; font-size: 13px;">Resting HR <span style="float: right; color: #10b981; font-weight: 700;">{{VITALS_RHR}} <small style="font-size: 9px;">BPM</small></span></div>
-                    <div style="margin-bottom: 10px; color: #6b7280; font-size: 13px;">Steps <span style="float: right; color: #111827; font-weight: 700;">{{VITALS_STEPS}}</span></div>
+                    <!-- Vitals metrics -->
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                        <tr>
+                            <td style="padding: 8px 0; color: #8c8579; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 13px; border-bottom: 1px solid #f0ece4;">Total Sleep</td>
+                            <td style="padding: 8px 0; text-align: right; color: #1a1a1a; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 13px; font-weight: 600; border-bottom: 1px solid #f0ece4;">{{VITALS_SLEEP}}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; color: #8c8579; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 13px; border-bottom: 1px solid #f0ece4;">Deep Sleep</td>
+                            <td style="padding: 8px 0; text-align: right; color: #6d28d9; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 13px; font-weight: 600; border-bottom: 1px solid #f0ece4;">{{VITALS_DEEP}}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; color: #8c8579; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 13px; border-bottom: 1px solid #f0ece4;">Resting HR</td>
+                            <td style="padding: 8px 0; text-align: right; color: #059669; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 13px; font-weight: 600; border-bottom: 1px solid #f0ece4;">{{VITALS_RHR}} <span style="color: #8c8579; font-size: 9px;">BPM</span></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; color: #8c8579; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 13px;">Steps</td>
+                            <td style="padding: 8px 0; text-align: right; color: #1a1a1a; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 13px; font-weight: 600;">{{VITALS_STEPS}}</td>
+                        </tr>
+                    </table>
 
-                    <div style="color: #6b7280; font-size: 13px; border-top: 1px solid #f3f4f6; margin-top: 10px; padding-top: 10px;">
-                        Burn (Act/Tot)
-                        <span style="float: right; color: #e11d48; font-weight: 700;">
-                            {{VITALS_CALS}} <small style="color: #9ca3af; font-weight: 400; font-size: 11px;">/ {{VITALS_TOTAL_CALS}}</small>
+                    <!-- Calorie burn -->
+                    <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid #f0ece4;">
+                        <span style="color: #8c8579; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Burn</span>
+                        <span style="float: right; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 12px;">
+                            <span style="color: #dc2626; font-weight: 700;">{{VITALS_CALS}}</span>
+                            <span style="color: #8c8579; font-weight: 400;"> / {{VITALS_TOTAL_CALS}}</span>
                         </span>
                     </div>
-                </div>
-
-            </div>
-
-            <div style="padding: 35px 40px 45px 40px; background-color: #ffffff;">
-                {{WORKOUT_CONTENT}}
-            </div>
-
-            <div style="background-color: #f9fafb; padding: 24px; text-align: center; border-top: 1px solid #f3f4f6;">
-                <p style="margin: 0; color: #9ca3af; font-size: 12px; font-weight: 500;">Telemetry securely synced via Health Connect & Gabit</p>
-            </div>
-
+                </td></tr>
+            </table>
         </div>
-    </div>
+        <!--[if mso]>
+        </td></tr></table>
+        <![endif]-->
+    </td></tr>
+
+    <!-- Workout content -->
+    <tr><td style="padding: 36px 40px 48px 40px; background-color: #ffffff;">
+        {{WORKOUT_CONTENT}}
+    </td></tr>
+
+    <!-- Footer -->
+    <tr><td style="padding: 24px 40px; background-color: #faf8f5; border-top: 1px solid #e8e4dc; text-align: center;">
+        <p style="margin: 0 0 4px 0; color: #059669; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 13px; font-weight: 700;">FitnessAgents</p>
+        <p style="margin: 0; color: #b0a99e; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; font-size: 11px; font-weight: 500;">Telemetry synced via Health Connect &amp; Gabit</p>
+    </td></tr>
+
+</table>
+<!-- /Main card -->
+
+</td></tr>
+</table>
 </body>
 </html>

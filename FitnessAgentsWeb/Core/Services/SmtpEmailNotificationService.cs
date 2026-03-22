@@ -8,6 +8,7 @@ using System;
 using System.IO;
 using System.Net;
 using System.Net.Mail;
+using System.Net.Mime;
 using System.Threading.Tasks;
 
 namespace FitnessAgentsWeb.Core.Services
@@ -16,11 +17,13 @@ namespace FitnessAgentsWeb.Core.Services
     {
         private readonly IAppConfigurationProvider _configProvider;
         private readonly Microsoft.Extensions.Logging.ILogger<SmtpEmailNotificationService> _logger;
+        private readonly string _webRootPath;
 
-        public SmtpEmailNotificationService(IAppConfigurationProvider configProvider, Microsoft.Extensions.Logging.ILogger<SmtpEmailNotificationService> logger)
+        public SmtpEmailNotificationService(IAppConfigurationProvider configProvider, Microsoft.Extensions.Logging.ILogger<SmtpEmailNotificationService> logger, Microsoft.AspNetCore.Hosting.IWebHostEnvironment env)
         {
             _configProvider = configProvider;
             _logger = logger;
+            _webRootPath = env.WebRootPath;
         }
 
         public async Task SendWorkoutNotificationAsync(string toEmail, string markdownWorkout, UserHealthContext context)
@@ -81,13 +84,20 @@ namespace FitnessAgentsWeb.Core.Services
 
             using var mailMessage = new MailMessage
             {
-                From = new MailAddress(fromEmail, "AI Strength Coach"),
+                From = new MailAddress(fromEmail, "FitnessAgents"),
                 Subject = $"🏋️‍♂️ {context.FirstName}'s Daily Workout - {TimezoneHelper.GetAppNow(_configProvider.GetAppTimezone()):dddd, MMM d}",
-                Body = finalHtmlBody,
-                IsBodyHtml = true
             };
 
             mailMessage.To.Add(toEmail);
+
+            var htmlView = AlternateView.CreateAlternateViewFromString(finalHtmlBody, null, MediaTypeNames.Text.Html);
+            var logoPath = Path.Combine(_webRootPath, "images", "logo-light.png");
+            if (File.Exists(logoPath))
+            {
+                var logo = new LinkedResource(logoPath, MediaTypeNames.Image.Png) { ContentId = "logo" };
+                htmlView.LinkedResources.Add(logo);
+            }
+            mailMessage.AlternateViews.Add(htmlView);
 
             try
             {
@@ -118,10 +128,10 @@ namespace FitnessAgentsWeb.Core.Services
             {
                 if (meal.MealType != prevType)
                 {
-                    groupedMeals += $"<h3 style='color: #ec4899; font-size: 14px; font-weight: 800; text-transform: uppercase; margin-top: 20px; margin-bottom: 10px;'>{meal.MealType}</h3>";
+                    groupedMeals += $"<h3 style='color: #b45309; font-family: DM Sans, -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, sans-serif; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-top: 24px; margin-bottom: 12px;'>{meal.MealType}</h3>";
                     prevType = meal.MealType;
                 }
-                groupedMeals += $"<p style='margin: 0 0 8px 0; color: #374151; font-size: 15px;'>• <strong>{meal.FoodName}</strong> ({meal.QuantityDescription}) <span style='color: #6b7280; float: right;'>{meal.Calories} kcal</span></p>";
+                groupedMeals += $"<p style='margin: 0 0 10px 0; color: #44403c; font-family: DM Sans, -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, sans-serif; font-size: 15px; line-height: 1.5;'>&#x2022; <strong style='color: #1a1a1a;'>{meal.FoodName}</strong> <span style='color: #8c8579;'>({meal.QuantityDescription})</span> <span style='color: #92400e; font-family: DM Sans, -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, sans-serif; font-size: 13px; font-weight: 600; float: right;'>{meal.Calories} kcal</span></p>";
             }
 
             string templatePath = Path.Combine(AppContext.BaseDirectory, @"Templates\DietEmailTemplate.html");
@@ -151,13 +161,20 @@ namespace FitnessAgentsWeb.Core.Services
 
             using var mailMessage = new MailMessage
             {
-                From = new MailAddress(fromEmail, "AI Nutritionist"),
+                From = new MailAddress(fromEmail, "FitnessAgents"),
                 Subject = $"🥗 {context.FirstName}'s Nutrition Plan - {diet.PlanDate:dddd, MMM d}",
-                Body = finalHtmlBody,
-                IsBodyHtml = true
             };
 
             mailMessage.To.Add(toEmail);
+
+            var htmlView = AlternateView.CreateAlternateViewFromString(finalHtmlBody, null, MediaTypeNames.Text.Html);
+            var logoPath = Path.Combine(_webRootPath, "images", "logo-light.png");
+            if (File.Exists(logoPath))
+            {
+                var logo = new LinkedResource(logoPath, MediaTypeNames.Image.Png) { ContentId = "logo" };
+                htmlView.LinkedResources.Add(logo);
+            }
+            mailMessage.AlternateViews.Add(htmlView);
 
             try
             {

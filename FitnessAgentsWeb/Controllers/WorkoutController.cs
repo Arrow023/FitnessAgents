@@ -158,7 +158,8 @@ public class WorkoutController : Controller
 
         if (profile is not null && history is not null && history.PastWorkouts.TryGetValue(dayOfWeek, out var planMarkdown))
         {
-            var userContext = await _healthDataProcessor.LoadHealthStateToRAMAsync(userId, null);
+            var healthData = await _storageRepository.GetTodayHealthDataAsync(userId);
+            var userContext = await _healthDataProcessor.LoadHealthStateToRAMAsync(userId, healthData);
             await _notificationService.SendWorkoutNotificationAsync(profile.Email, planMarkdown, userContext);
         }
 

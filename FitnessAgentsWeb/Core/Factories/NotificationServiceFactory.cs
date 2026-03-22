@@ -10,12 +10,14 @@ namespace FitnessAgentsWeb.Core.Factories
         private readonly IConfiguration _configuration;
         private readonly IAppConfigurationProvider _configProvider;
         private readonly Microsoft.Extensions.Logging.ILoggerFactory _loggerFactory;
+        private readonly Microsoft.AspNetCore.Hosting.IWebHostEnvironment _env;
 
-        public NotificationServiceFactory(IConfiguration configuration, ConfigurationProviderFactory providerFactory, Microsoft.Extensions.Logging.ILoggerFactory loggerFactory)
+        public NotificationServiceFactory(IConfiguration configuration, ConfigurationProviderFactory providerFactory, Microsoft.Extensions.Logging.ILoggerFactory loggerFactory, Microsoft.AspNetCore.Hosting.IWebHostEnvironment env)
         {
             _configuration = configuration;
             _configProvider = providerFactory.GetProvider();
             _loggerFactory = loggerFactory;
+            _env = env;
         }
 
         public INotificationService Create()
@@ -25,11 +27,11 @@ namespace FitnessAgentsWeb.Core.Factories
 
             if (notifType == "SMTP")
             {
-                return new SmtpEmailNotificationService(_configProvider, logger);
+                return new SmtpEmailNotificationService(_configProvider, logger, _env);
             }
 
             // Fallback
-            return new SmtpEmailNotificationService(_configProvider, logger);
+            return new SmtpEmailNotificationService(_configProvider, logger, _env);
         }
     }
 }
