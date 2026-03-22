@@ -359,6 +359,40 @@ dotnet run --project FitnessAgentsWeb
 
 The app starts at `https://localhost:7278` (HTTPS) or `http://localhost:5094` (HTTP).
 
+### Running with Docker
+
+Pull the pre-built image from Docker Hub:
+
+```bash
+docker pull arrow023/health-assistant
+```
+
+Run the container with the two required environment variables:
+
+```bash
+docker run -d \
+  -p 8080:8080 \
+  -e FIREBASE_DATABASE_URL="https://<your-project>-default-rtdb.asia-southeast1.firebasedatabase.app/" \
+  -e FIREBASE_DATABASE_SECRET="<your-database-secret>" \
+  --name fitnessagents \
+  arrow023/health-assistant
+```
+
+The app will be available at `http://localhost:8080`.
+
+> All other configuration (AI keys, SMTP, OCR, Qdrant, timezone) is managed through the web UI on first launch — see [First-Run Setup](#first-run-setup).
+
+Alternatively, use a `.env` file (keep it out of source control):
+
+```env
+FIREBASE_DATABASE_URL=https://<your-project>-default-rtdb.asia-southeast1.firebasedatabase.app/
+FIREBASE_DATABASE_SECRET=<your-database-secret>
+```
+
+```bash
+docker run -d -p 8080:8080 --env-file .env --name fitnessagents arrow023/health-assistant
+```
+
 ### First-Run Setup
 
 On first launch, navigate to `/Setup` to configure:
