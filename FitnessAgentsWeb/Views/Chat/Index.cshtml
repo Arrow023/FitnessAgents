@@ -1,0 +1,418 @@
+@{
+    ViewData["Title"] = "AI Chat";
+    ViewData["ActiveNav"] = "chat";
+}
+
+<link rel="stylesheet" href="~/css/chat.css" asp-append-version="true" />
+
+<div class="chat-page" id="chatPage">
+    <!-- Welcome Screen (shown when no messages) -->
+    <div class="chat-welcome" id="chatWelcome">
+        <div class="chat-welcome-icon">
+            <i class="fa-solid fa-brain"></i>
+        </div>
+        <h1>FitnessAgent</h1>
+        <p>Your personal health companion. Ask about your metrics, update preferences, log meals, or get insights from your data.</p>
+
+        <div class="chat-starters" id="chatStarters">
+            <button class="chat-starter-btn" data-message="How did I sleep last night and what's my recovery looking like?">
+                <div class="chat-starter-icon blue"><i class="fa-solid fa-moon"></i></div>
+                <div class="chat-starter-text">
+                    <strong>Sleep &amp; Recovery</strong>
+                    <span>Check your metrics and readiness</span>
+                </div>
+            </button>
+            <button class="chat-starter-btn" data-message="What's my workout and diet plan for today?">
+                <div class="chat-starter-icon green"><i class="fa-solid fa-dumbbell"></i></div>
+                <div class="chat-starter-text">
+                    <strong>Today's Plans</strong>
+                    <span>View workout &amp; nutrition</span>
+                </div>
+            </button>
+            <button class="chat-starter-btn" data-message="I had oatmeal with berries and a protein shake for breakfast">
+                <div class="chat-starter-icon orange"><i class="fa-solid fa-utensils"></i></div>
+                <div class="chat-starter-text">
+                    <strong>Log a Meal</strong>
+                    <span>Track what you've eaten today</span>
+                </div>
+            </button>
+            <button class="chat-starter-btn" data-message="Show me my health trends and patterns from the past week">
+                <div class="chat-starter-icon purple"><i class="fa-solid fa-chart-line"></i></div>
+                <div class="chat-starter-text">
+                    <strong>Weekly Insights</strong>
+                    <span>Analyze your recent patterns</span>
+                </div>
+            </button>
+        </div>
+    </div>
+
+    <!-- Messages Thread (hidden until first message) -->
+    <div class="chat-thread" id="chatThread" style="display:none;"></div>
+
+    <!-- Scroll to Bottom -->
+    <button class="chat-scroll-btn" id="chatScrollBtn" title="Scroll to bottom">
+        <i class="fa-solid fa-chevron-down"></i>
+    </button>
+
+    <!-- Input Area -->
+    <div class="chat-input-area">
+        <div class="chat-input-wrapper">
+            <textarea class="chat-input" id="chatInput"
+                      placeholder="Ask about your health data, update preferences, log meals..."
+                      rows="1"></textarea>
+            <button class="chat-send-btn" id="chatSendBtn" title="Send message">
+                <i class="fa-solid fa-arrow-up"></i>
+            </button>
+        </div>
+        <div class="chat-input-hint">FitnessAgent can read and update your health data</div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function() {
+    // ── State ──────────────────────────────────────────────
+    var conversationHistory = [];
+    var isStreaming = false;
+    var currentAbortController = null;
+
+    // ── DOM Refs ───────────────────────────────────────────
+    var chatPage = document.getElementById('chatPage');
+    var chatWelcome = document.getElementById('chatWelcome');
+    var chatThread = document.getElementById('chatThread');
+    var chatInput = document.getElementById('chatInput');
+    var chatSendBtn = document.getElementById('chatSendBtn');
+    var chatScrollBtn = document.getElementById('chatScrollBtn');
+
+    // ── Auto-resize Textarea ──────────────────────────────
+    chatInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 160) + 'px';
+    });
+
+    // ── Send on Enter (Shift+Enter for newline) ───────────
+    chatInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    chatSendBtn.addEventListener('click', function() {
+        if (isStreaming) {
+            stopStreaming();
+        } else {
+            sendMessage();
+        }
+    });
+
+    // ── Conversation Starters ────────────────────────────
+    document.querySelectorAll('.chat-starter-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var msg = this.getAttribute('data-message');
+            if (msg) {
+                chatInput.value = msg;
+                sendMessage();
+            }
+        });
+    });
+
+    // ── Scroll Detection ─────────────────────────────────
+    chatThread.addEventListener('scroll', function() {
+        var diff = chatThread.scrollHeight - chatThread.scrollTop - chatThread.clientHeight;
+        chatScrollBtn.classList.toggle('visible', diff > 120);
+    });
+
+    chatScrollBtn.addEventListener('click', function() {
+        scrollToBottom(true);
+    });
+
+    // ── Core: Send Message ───────────────────────────────
+    function sendMessage() {
+        var text = chatInput.value.trim();
+        if (!text || isStreaming) return;
+
+        // Hide welcome, show thread
+        chatWelcome.style.display = 'none';
+        chatThread.style.display = 'flex';
+
+        // Add user message
+        appendMessage('user', text);
+        conversationHistory.push({ role: 'user', content: text });
+
+        chatInput.value = '';
+        chatInput.style.height = 'auto';
+
+        streamResponse(text);
+    }
+
+    // ── Core: Stream Response from Server ────────────────
+    function streamResponse(userMessage) {
+        isStreaming = true;
+        updateSendButton();
+
+        currentAbortController = new AbortController();
+
+        // Create assistant message container
+        var msgEl = createAssistantContainer();
+        var thinkingEl = null;
+        var toolGroupEl = null;
+        var contentEl = null;
+
+        fetch('/api/chat/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message: userMessage,
+                history: conversationHistory.slice(-20)
+            }),
+            signal: currentAbortController.signal
+        }).then(function(response) {
+            var reader = response.body.getReader();
+            var decoder = new TextDecoder();
+            var buffer = '';
+
+            function processChunk() {
+                return reader.read().then(function(result) {
+                    if (result.done) {
+                        finishStream();
+                        return;
+                    }
+
+                    buffer += decoder.decode(result.value, { stream: true });
+                    var lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+
+                    var currentEvent = '';
+                    for (var i = 0; i < lines.length; i++) {
+                        var line = lines[i];
+                        if (line.startsWith('event: ')) {
+                            currentEvent = line.substring(7).trim();
+                        } else if (line.startsWith('data: ') && currentEvent) {
+                            var data;
+                            try { data = JSON.parse(line.substring(6)); } catch(e) { continue; }
+                            handleEvent(currentEvent, data, msgEl);
+                            currentEvent = '';
+                        }
+                    }
+
+                    return processChunk();
+                });
+            }
+
+            function handleEvent(eventType, data, container) {
+                switch (eventType) {
+                    case 'thinking':
+                        if (!thinkingEl) {
+                            thinkingEl = createThinkingIndicator(data.text);
+                            container.querySelector('.chat-msg-body').appendChild(thinkingEl);
+                        }
+                        scrollToBottom();
+                        break;
+
+                    case 'tool_call':
+                        // Remove thinking
+                        if (thinkingEl) { thinkingEl.remove(); thinkingEl = null; }
+
+                        if (!toolGroupEl) {
+                            toolGroupEl = document.createElement('div');
+                            toolGroupEl.className = 'chat-tool-group';
+                            container.querySelector('.chat-msg-body').appendChild(toolGroupEl);
+                        }
+                        appendToolCall(toolGroupEl, data.name, data.args);
+                        scrollToBottom();
+                        break;
+
+                    case 'tool_result':
+                        updateToolResult(toolGroupEl, data.name, data.result);
+                        scrollToBottom();
+                        break;
+
+                    case 'message':
+                        // Remove thinking
+                        if (thinkingEl) { thinkingEl.remove(); thinkingEl = null; }
+
+                        if (!contentEl) {
+                            contentEl = document.createElement('div');
+                            contentEl.className = 'chat-msg-content';
+                            container.querySelector('.chat-msg-body').appendChild(contentEl);
+                        }
+                        contentEl.innerHTML = data.html || escapeHtml(data.text);
+                        scrollToBottom();
+                        break;
+
+                    case 'error':
+                        if (thinkingEl) { thinkingEl.remove(); thinkingEl = null; }
+                        var errEl = document.createElement('div');
+                        errEl.className = 'chat-msg-content';
+                        errEl.style.borderColor = 'var(--accent-red)';
+                        errEl.textContent = data.text || 'An error occurred.';
+                        container.querySelector('.chat-msg-body').appendChild(errEl);
+                        scrollToBottom();
+                        break;
+
+                    case 'done':
+                        finishStream();
+                        break;
+                }
+            }
+
+            function finishStream() {
+                // Collect final text for history
+                if (contentEl) {
+                    conversationHistory.push({ role: 'assistant', content: contentEl.textContent });
+                }
+                isStreaming = false;
+                currentAbortController = null;
+                updateSendButton();
+            }
+
+            return processChunk();
+
+        }).catch(function(err) {
+            if (err.name === 'AbortError') return;
+            console.error('[Chat] Stream error:', err);
+            isStreaming = false;
+            currentAbortController = null;
+            updateSendButton();
+        });
+    }
+
+    function stopStreaming() {
+        if (currentAbortController) {
+            currentAbortController.abort();
+            currentAbortController = null;
+        }
+        isStreaming = false;
+        updateSendButton();
+    }
+
+    // ── DOM Builders ─────────────────────────────────────
+    function appendMessage(role, text) {
+        var msg = document.createElement('div');
+        msg.className = 'chat-msg chat-msg--' + role;
+
+        var avatarText = role === 'user'
+            ? (document.querySelector('.sidebar-user-avatar')?.textContent?.trim() || 'U')
+            : '';
+        var avatarIcon = role === 'assistant' ? '<i class="fa-solid fa-brain"></i>' : escapeHtml(avatarText);
+
+        msg.innerHTML =
+            '<div class="chat-msg-avatar">' + avatarIcon + '</div>' +
+            '<div class="chat-msg-body">' +
+                '<div class="chat-msg-content">' + escapeHtml(text) + '</div>' +
+            '</div>';
+
+        chatThread.appendChild(msg);
+        scrollToBottom();
+        return msg;
+    }
+
+    function createAssistantContainer() {
+        var msg = document.createElement('div');
+        msg.className = 'chat-msg chat-msg--assistant';
+        msg.innerHTML =
+            '<div class="chat-msg-avatar"><i class="fa-solid fa-brain"></i></div>' +
+            '<div class="chat-msg-body"></div>';
+        chatThread.appendChild(msg);
+        return msg;
+    }
+
+    function createThinkingIndicator(text) {
+        var el = document.createElement('div');
+        el.className = 'chat-thinking';
+        el.innerHTML =
+            '<div class="chat-thinking-dots"><span></span><span></span><span></span></div>' +
+            '<span>' + escapeHtml(text || 'Thinking...') + '</span>';
+        return el;
+    }
+
+    function appendToolCall(group, name, args) {
+        var isWrite = name.toLowerCase().includes('updat') || name.toLowerCase().includes('upsert') || name.toLowerCase().includes('submit');
+        var iconClass = isWrite ? 'writing' : 'reading';
+        var icon = isWrite ? 'fa-solid fa-pen' : 'fa-solid fa-magnifying-glass';
+
+        var tool = document.createElement('div');
+        tool.className = 'chat-tool';
+        tool.setAttribute('data-tool-name', name);
+        tool.innerHTML =
+            '<div class="chat-tool-header" onclick="this.parentElement.classList.toggle(\'expanded\')">' +
+                '<span class="chat-tool-chevron"><i class="fa-solid fa-chevron-right"></i></span>' +
+                '<div class="chat-tool-icon ' + iconClass + '"><i class="' + icon + '"></i></div>' +
+                '<span class="chat-tool-name">' + escapeHtml(name) + '</span>' +
+                '<div class="chat-tool-spinner"></div>' +
+                '<span class="chat-tool-status running">running</span>' +
+            '</div>' +
+            '<div class="chat-tool-body"><div class="chat-tool-body-inner">' +
+                (args ? escapeHtml(formatToolArgs(args)) : '') +
+            '</div></div>';
+
+        group.appendChild(tool);
+    }
+
+    function updateToolResult(group, name, result) {
+        if (!group) return;
+        var tools = group.querySelectorAll('.chat-tool');
+        // Find the last matching tool that's still running
+        for (var i = tools.length - 1; i >= 0; i--) {
+            if (tools[i].getAttribute('data-tool-name') === name) {
+                var spinner = tools[i].querySelector('.chat-tool-spinner');
+                if (spinner) spinner.remove();
+
+                var status = tools[i].querySelector('.chat-tool-status');
+                if (status) {
+                    status.className = 'chat-tool-status done';
+                    status.textContent = 'done';
+                }
+
+                var inner = tools[i].querySelector('.chat-tool-body-inner');
+                if (inner && result) {
+                    inner.textContent = result;
+                }
+                break;
+            }
+        }
+    }
+
+    // ── Utilities ────────────────────────────────────────
+    function updateSendButton() {
+        if (isStreaming) {
+            chatSendBtn.className = 'chat-stop-btn';
+            chatSendBtn.innerHTML = '<i class="fa-solid fa-stop"></i>';
+            chatSendBtn.title = 'Stop generating';
+        } else {
+            chatSendBtn.className = 'chat-send-btn';
+            chatSendBtn.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
+            chatSendBtn.title = 'Send message';
+        }
+    }
+
+    function scrollToBottom(smooth) {
+        requestAnimationFrame(function() {
+            chatThread.scrollTo({
+                top: chatThread.scrollHeight,
+                behavior: smooth ? 'smooth' : 'auto'
+            });
+        });
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        var d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+    }
+
+    function formatToolArgs(argsStr) {
+        try {
+            var obj = JSON.parse(argsStr);
+            return JSON.stringify(obj, null, 2);
+        } catch(e) {
+            return argsStr;
+        }
+    }
+
+
+})();
+</script>
+}

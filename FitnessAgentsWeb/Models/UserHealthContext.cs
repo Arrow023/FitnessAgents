@@ -74,6 +74,7 @@ namespace FitnessAgentsWeb.Models
         public List<string> CookingOils { get; set; } = new();
         public List<string> StapleGrains { get; set; } = new();
         public string DiaryBrief { get; set; } = string.Empty;
+        public string YesterdayExerciseBrief { get; set; } = "No exercise sessions logged yesterday.";
         public string DietHistoryBrief { get; set; } = "No previous diet history for this week.";
         public System.Collections.Generic.Dictionary<string, string> WorkoutSchedule { get; set; } = new();
     }

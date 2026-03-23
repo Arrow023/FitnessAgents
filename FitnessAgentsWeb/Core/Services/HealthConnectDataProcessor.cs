@@ -238,6 +238,22 @@ namespace FitnessAgentsWeb.Core.Services
                     context.ExerciseLog = JsonSerializer.Serialize(exerciseEntries);
                 }
 
+                // Yesterday's exercise sessions with HR zone highlights (for workout agent context)
+                DateTime yesterdayStart = targetDateIst.AddDays(-1);
+                DateTime yesterdayEnd = targetDateIst;
+                var yesterdayExercise = hc.Exercise
+                    .Where(e => {
+                        var istTime = TimeZoneInfo.ConvertTimeFromUtc(e.StartTime, _istZone);
+                        return istTime >= yesterdayStart && istTime < yesterdayEnd;
+                    })
+                    .OrderByDescending(e => e.StartTime).ToList();
+                if (yesterdayExercise.Any())
+                {
+                    var sessionHighlights = yesterdayExercise.Select(e =>
+                        BuildExerciseHighlight(e, hc.HeartRate));
+                    context.YesterdayExerciseBrief = $"Yesterday's exercise sessions ({yesterdayExercise.Count}):\n{string.Join("\n", sessionHighlights)}";
+                }
+
                 // Active minutes this week (all exercise within 7 days)
                 DateTime weekStart = targetDateIst.AddDays(-6);
                 int activeMinutes = hc.Exercise
@@ -528,6 +544,76 @@ namespace FitnessAgentsWeb.Core.Services
             }
 
             return (int)Math.Round(durationScore * 0.40 + deepScore * 0.30 + efficiencyScore * 0.30);
+        }
+
+        /// <summary>
+        /// Builds a one-line highlight for an exercise session by correlating heart rate data
+        /// to compute zone distribution and generate a coaching-relevant insight.
+        /// </summary>
+        private static string BuildExerciseHighlight(ExerciseRecord exercise, List<HeartRateRecord> allHeartRate)
+        {
+            string name = ExerciseTypeHelper.GetExerciseName(exercise.Type);
+            int durationMin = exercise.DurationSeconds / 60;
+            string base_info = $"- {name} ({durationMin} min)";
+
+            // Find HR readings that fall within this exercise session window
+            var sessionHr = allHeartRate
+                .Where(h => h.Time >= exercise.StartTime && h.Time <= exercise.EndTime)
+                .ToList();
+
+            if (sessionHr.Count < 3)
+                return $"{base_info}: No sufficient HR data.";
+
+            int avgBpm = (int)Math.Round(sessionHr.Average(h => h.Bpm));
+            int maxBpm = sessionHr.Max(h => h.Bpm);
+            int totalPoints = sessionHr.Count;
+
+            // Zone thresholds matching Samsung Health definitions used in ExerciseController
+            var zones = new (string Label, int Min, int Max)[] {
+                ("Rest",   0,   97),
+                ("Zone 1", 97,  116),
+                ("Zone 2", 116, 135),
+                ("Zone 3", 135, 155),
+                ("Zone 4", 155, 174),
+                ("Zone 5", 174, 194)
+            };
+
+            var zonePercentages = zones.Select(z => (
+                z.Label,
+                Pct: Math.Round(100.0 * sessionHr.Count(h => h.Bpm >= z.Min && h.Bpm < z.Max) / totalPoints)
+            )).ToList();
+
+            // Find the dominant zone (highest percentage, excluding Rest)
+            var dominantZone = zonePercentages
+                .Where(z => z.Label != "Rest")
+                .OrderByDescending(z => z.Pct)
+                .FirstOrDefault();
+
+            // Build the coaching insight based on dominant zone (aligned with Samsung Health zone descriptions)
+            string insight = dominantZone switch
+            {
+                { Label: "Zone 1", Pct: >= 50 } => $"Recovery/warm-up effort — {dominantZone.Pct}% in Zone 1 (muscle recovery, reduces fatigue)",
+                { Label: "Zone 2", Pct: >= 50 } => $"Fat-burn session — {dominantZone.Pct}% in Zone 2 (weight loss, aerobic endurance)",
+                { Label: "Zone 3", Pct: >= 40 } => $"Stamina builder — {dominantZone.Pct}% in Zone 3 (aerobic fitness, cardiovascular strength)",
+                { Label: "Zone 4", Pct: >= 30 } => $"Speed & endurance push — {dominantZone.Pct}% in Zone 4 (cardiovascular endurance, calorie burn)",
+                { Label: "Zone 5", Pct: >= 20 } => $"Peak intensity — {dominantZone.Pct}% in Zone 5 (interval/HIIT training, short burst max effort)",
+                _ => BuildMixedZoneSummary(zonePercentages)
+            };
+
+            return $"{base_info}: Avg {avgBpm} bpm, Peak {maxBpm} bpm. {insight}.";
+        }
+
+        private static string BuildMixedZoneSummary(List<(string Label, double Pct)> zonePercentages)
+        {
+            var significant = zonePercentages
+                .Where(z => z.Label != "Rest" && z.Pct >= 15)
+                .OrderByDescending(z => z.Pct)
+                .Select(z => $"{z.Pct}% {z.Label}")
+                .ToList();
+
+            return significant.Count > 0
+                ? $"Mixed zones — {string.Join(", ", significant)}"
+                : "Mostly resting heart rate throughout";
         }
 
         private static int ComputeActiveScore(int steps, double activeCalories, int exerciseMinutes)

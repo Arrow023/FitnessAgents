@@ -50,6 +50,7 @@ namespace FitnessAgentsWeb.Core.Services
             Weight: {context.InBodyWeight}kg
             Body Fat: {context.InBodyBf}%
             Recent Activity: {context.ReadinessBrief}
+            Yesterday's Exercise: {context.YesterdayExerciseBrief}
             Weekly History: {context.WeeklyHistoryBrief}
             Preferences/Conditions: {context.ConditionsBrief}
             InBody Analysis (secondary guidance): {context.InBodyBrief}

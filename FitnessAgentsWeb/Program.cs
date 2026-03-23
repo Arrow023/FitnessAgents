@@ -62,6 +62,7 @@ builder.Services.AddScoped<INotificationService>(sp =>
 });
 builder.Services.AddSingleton<InBodyOcrService>();
 builder.Services.AddSingleton<IAiOrchestratorService, AiOrchestratorService>();
+builder.Services.AddScoped<IChatAgentService, ChatAgentService>();
 
 // Vector store and embedding services (optional — gracefully degrade if Qdrant is unreachable)
 builder.Services.AddSingleton<IEmbeddingService, EmbeddingService>();

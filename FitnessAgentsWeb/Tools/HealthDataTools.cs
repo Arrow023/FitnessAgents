@@ -38,5 +38,8 @@ namespace FitnessAgentsWeb.Tools
 
         [Description("Fetches the workout history for the current week to avoid repeating exercises and ensure balanced programming.")]
         public string GetWeeklyWorkoutHistory() => _context.WeeklyHistoryBrief;
+
+        [Description("Fetches yesterday's exercise sessions from health monitoring data (e.g. walking, cycling, gym) — only the previous day, not the full timeline.")]
+        public string GetYesterdayExercise() => _context.YesterdayExerciseBrief;
     }
 }
