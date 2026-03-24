@@ -53,12 +53,14 @@ jobs:
           name: webapp
           path: ./publish
 
+      - name: Install lftp
+        run: sudo apt-get install -y lftp
+
       - name: Deploy to FTP server
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftp
-          local-dir: ./publish/
-          server-dir: /wwwroot/
+        run: |
+          lftp -u "${{ secrets.FTP_USERNAME }},${{ secrets.FTP_PASSWORD }}" "${{ secrets.FTP_SERVER }}" <<EOF
+          set ssl:verify-certificate no
+          set ftp:passive-mode yes
+          mirror --reverse --delete --verbose ./publish/ /wwwroot/
+          bye
+          EOF
