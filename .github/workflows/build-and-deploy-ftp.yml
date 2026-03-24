@@ -32,8 +32,15 @@ jobs:
       - name: Build
         run: dotnet build ${{ env.PROJECT_PATH }} -c Release --no-restore
 
-      - name: Deploy using publish profile
-        env:
-          DEPLOY_PWD: ${{ secrets.DEPLOY_PASSWORD }}
+      - name: Publish output
+        run: dotnet publish ${{ env.PROJECT_PATH }} -c Release -o ./publish --no-build
+
+      - name: Deploy via MSDeploy
+        shell: cmd
         run: |
-          dotnet publish ${{ env.PROJECT_PATH }} -c Release /p:PublishProfile=site59163-WebDeploy "/p:Password=$env:DEPLOY_PWD" /p:AllowUntrustedCertificate=true
+          "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe" ^
+            -verb:sync ^
+            -source:contentPath="%CD%\publish" ^
+            -dest:contentPath="${{ secrets.DEPLOY_SITE }}",computerName="https://${{ secrets.DEPLOY_SERVER }}:8172/msdeploy.axd?site=${{ secrets.DEPLOY_SITE }}",userName="${{ secrets.DEPLOY_USERNAME }}",password="${{ secrets.DEPLOY_PASSWORD }}",authType="basic" ^
+            -enableRule:AppOffline ^
+            -allowUntrusted
