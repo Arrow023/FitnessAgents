@@ -50,7 +50,7 @@ jobs:
 
       - name: Deploy files via FTP
         run: |
-          lftp -e "set ftp:passive-mode yes; set ssl:verify-certificate no; set net:max-retries 3; mirror --reverse --verbose --parallel=5 ./publish/ /wwwroot/; bye" \
+          lftp -e "set ftp:passive-mode yes; set ssl:verify-certificate no; set net:max-retries 3; mirror --reverse --verbose --no-perms --parallel=5 ./publish/ /wwwroot/; bye" \
             -u "${{ secrets.FTP_USERNAME }},${{ secrets.FTP_PASSWORD }}" \
             "${{ secrets.FTP_SERVER }}"
 
