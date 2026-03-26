@@ -38,7 +38,11 @@ namespace FitnessAgentsWeb.Core.Services
 
             var openAiClient = new OpenAIClient(
                 new ApiKeyCredential(aiKey),
-                new OpenAIClientOptions { Endpoint = new Uri(aiEndpoint) }
+                new OpenAIClientOptions
+                {
+                    Endpoint = new Uri(aiEndpoint),
+                    NetworkTimeout = TimeSpan.FromMinutes(5)
+                }
             );
 
             return openAiClient.GetChatClient(aiModel).AsIChatClient();

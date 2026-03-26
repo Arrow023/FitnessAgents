@@ -43,7 +43,11 @@ namespace FitnessAgentsWeb.Core.Services
 
                 var client = new OpenAIClient(
                     new ApiKeyCredential(apiKey),
-                    new OpenAIClientOptions { Endpoint = new Uri(endpoint) }
+                    new OpenAIClientOptions
+                    {
+                        Endpoint = new Uri(endpoint),
+                        NetworkTimeout = TimeSpan.FromMinutes(5)
+                    }
                 );
 
                 string embeddingModel = _configProvider.GetEmbeddingModel();
