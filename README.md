@@ -63,6 +63,10 @@ Upload a photo of your InBody body composition scan and the AI vision model extr
 Log what you actually ate, how your workout felt, pain points, mood, and hydration — then let the AI compare your reality against its recommendations.
 
 - **Meal Tracking** — Record actual food intake alongside the AI-recommended plan, flag substitutions
+- **Photo Meal Logging** — Upload a meal photo directly from the diary; the Vision LLM extracts items and pre-fills the entry
+- **Smart Defaults** — New diary entries are pre-populated with your last known mood, water intake, and common meals to reduce input effort
+- **Same as Yesterday** — One-click button copies yesterday's full diary entry into today for consistent days
+- **Meal Suggestions** — Quick-tap chips generated from your most frequently logged meals for rapid entry
 - **Workout Logging** — Mark exercises as completed/skipped with per-exercise difficulty ratings and notes
 - **Pain Journal** — Track body-area pain with severity (1–5) to inform future AI-generated plans
 - **Mood & Energy** — Daily energy level (1–5) + free-form sleep and general notes
@@ -102,8 +106,12 @@ Plan generation runs asynchronously via a channel-based background service with 
 ### 🤖 AI Chat Agent
 A conversational assistant that reads and updates your health data through natural language, powered by tool-calling AI with SSE streaming.
 
-- **19 Tools** — 14 read tools + 5 write tools covering sleep, exercise, plans, diary, body composition, feedback, notifications, and more
+- **22 Tools** — 16 read tools + 6 write tools covering sleep, exercise, plans, diary, body composition, feedback, notifications, onboarding, and more
 - **SSE Streaming** — Real-time Server-Sent Events deliver assistant responses with visible thinking indicators and collapsible tool call traces
+- **Conversational Onboarding** — New users are guided through a step-by-step onboarding flow entirely via chat. The system detects incomplete profiles, injects per-turn instructions, and the AI calls the right tools to save name, age, conditions, food preferences, cuisine style, and workout schedule — no forms required
+- **Voice Input** — Speak to the chat agent using the Web Speech API. A microphone button in the chat pill UI captures speech and sends it as text
+- **Photo-Based Meal Logging** — Snap a photo of your meal and the Vision LLM extracts food items, quantities, meal type, and estimated calories via `MealVisionService`. Results are pre-filled into the chat for confirmation
+- **Split Pill Actions** — Camera and microphone buttons are grouped in a compact pill UI for quick access to photo and voice input
 - **Sleep Analysis** — Queries sleep stages, efficiency, WASO, bedtime/wake time, and overnight vitals
 - **Exercise History** — Retrieves Health Connect exercise sessions with duration, calories, heart rate, and exercise type
 - **Weekly Plans** — Fetches full Mon–Sun workout and diet plan history for the current week
@@ -129,6 +137,13 @@ Beautiful HTML emails delivered at your preferred time with your full daily brie
 - **Workout Email** — Includes a 24-hour vitals snapshot + InBody panel alongside the training plan
 - **Nutrition Email** — Grouped meals with calorie totals and an AI-generated summary
 - **Scheduled Delivery** — Per-user notification times with exactly-once daily triggering
+
+### ⚡ Inline Quick Feedback
+Rate your AI-generated workout and diet plans directly from their detail pages — no navigation required.
+
+- **Workout Feedback** — Tap 💪 (great), 😐 (okay), or 😓 (too hard) on the workout plan page
+- **Diet Feedback** — Tap 👍 (great), 😐 (okay), or 👎 (didn't like) on the diet plan page
+- **Instant Save** — Feedback is persisted immediately and feeds back into the AI's semantic memory for smarter future plans
 
 ### 📱 19 Health Data Types
 Ingests a comprehensive set of biometric data from 50+ Android health apps via Health Connect:
@@ -210,6 +225,7 @@ FitnessAgentsWeb/
 │   │   ├── HealthConnectDataProcessor      — 15-day sliding window + scoring
 │   │   ├── FirebaseStorageRepository       — Firebase Realtime DB persistence
 │   │   ├── InBodyOcrService                — Vision-based body comp extraction
+│   │   ├── MealVisionService               — Vision-based meal photo → structured food data
 │   │   ├── SmtpEmailNotificationService    — HTML email delivery
 │   │   ├── WorkoutEmailSchedulerService    — Background scheduler (daily)
 │   │   ├── PlanGenerationBackgroundService — Channel-based async plan generation
@@ -241,7 +257,7 @@ FitnessAgentsWeb/
 ├── Templates/                  # HTML email templates (Workout + Diet)
 ├── Tools/                      # AI function-calling tool definitions
 │   ├── HealthDataTools         — Workout/diet generation tool functions
-│   └── ChatAgentTools          — 19 chat agent tools (read + write)
+│   └── ChatAgentTools          — 22 chat agent tools (read + write)
 └── wwwroot/                    # Static assets (CSS)
 ```
 
@@ -258,6 +274,7 @@ FitnessAgentsWeb/
 | **Orchestrator** | `AiOrchestratorService` coordinates data → AI → storage → email |
 | **Semantic Memory** | `QdrantPlanVectorStore` + `EmbeddingService` enable historical plan retrieval |
 | **Tool-Calling Agent** | `ChatAgentService` + `ChatAgentTools` — LLM selects and invokes tools in a loop |
+| **Per-Turn Onboarding Injection** | `ChatAgentService` loads profile each turn, detects incomplete onboarding, and injects step-specific tool instructions into the user message |
 
 ### Scoring Engine
 

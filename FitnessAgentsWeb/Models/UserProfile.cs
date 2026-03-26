@@ -20,6 +20,22 @@ namespace FitnessAgentsWeb.Models
         public string? WebhookHeaderKey { get; set; }
         public string? WebhookHeaderValue { get; set; }
 
+        /// <summary>
+        /// Tracks which onboarding steps have been completed via the chat agent.
+        /// Steps: "name", "age", "conditions", "food", "cuisine", "schedule"
+        /// </summary>
+        private List<string>? _onboardingCompleted = new();
+        public List<string> OnboardingCompleted
+        {
+            get => _onboardingCompleted ??= new();
+            set => _onboardingCompleted = value ?? new();
+        }
+
+        /// <summary>
+        /// Whether the user has completed the minimum onboarding (name + age + conditions).
+        /// </summary>
+        public bool IsOnboardingComplete { get; set; }
+
         public System.Collections.Generic.Dictionary<string, string> WorkoutSchedule { get; set; } = new ()
         {
             { "Monday", "Fasting" }, { "Tuesday", "Chest and Triceps" },

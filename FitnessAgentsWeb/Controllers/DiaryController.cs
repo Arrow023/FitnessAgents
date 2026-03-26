@@ -214,4 +214,112 @@ public class DiaryController : Controller
             return User.Identity?.Name ?? "default_user";
         return string.IsNullOrEmpty(userId) ? User.Identity?.Name ?? "default_user" : userId;
     }
+
+    /// <summary>
+    /// Returns frequently eaten foods from the last 14 days for autocomplete suggestions.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> MealSuggestions(string? userId = null)
+    {
+        userId = ResolveUserId(userId);
+        var entries = await _storageRepository.GetRecentDiaryEntriesAsync(userId, 14);
+
+        var suggestions = entries
+            .SelectMany(e => e.ActualMeals)
+            .Where(m => !string.IsNullOrWhiteSpace(m.FoodName))
+            .GroupBy(m => m.FoodName.Trim(), StringComparer.OrdinalIgnoreCase)
+            .OrderByDescending(g => g.Count())
+            .Take(20)
+            .Select(g => new
+            {
+                foodName = g.Key,
+                quantity = g.First().Quantity,
+                mealTime = g.First().MealTime,
+                count = g.Count()
+            })
+            .ToList();
+
+        return Json(suggestions);
+    }
+
+    /// <summary>
+    /// Returns yesterday's diary entry for the "Same as yesterday" feature.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> YesterdayEntry(string? userId = null)
+    {
+        userId = ResolveUserId(userId);
+
+        var tzId = _configProvider.GetAppTimezone();
+        var appNow = TimezoneHelper.GetAppNow(tzId);
+        string yesterday = appNow.AddDays(-1).ToString("yyyy-MM-dd");
+
+        var entry = await _storageRepository.GetDiaryEntryAsync(userId, yesterday);
+        if (entry is null)
+            return Json(new { found = false });
+
+        return Json(new
+        {
+            found = true,
+            meals = entry.ActualMeals.Select(m => new { m.MealTime, m.FoodName, m.Quantity }),
+            workoutLog = entry.WorkoutLog.Select(w => new { w.Exercise, w.Completed, w.Feeling }),
+            moodEnergy = entry.MoodEnergy,
+            waterIntakeLitres = entry.WaterIntakeLitres
+        });
+    }
+
+    /// <summary>
+    /// Returns smart defaults (most common mood, water intake, and frequent pain areas) based on recent patterns.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> SmartDefaults(string? userId = null)
+    {
+        userId = ResolveUserId(userId);
+        var entries = await _storageRepository.GetRecentDiaryEntriesAsync(userId, 14);
+
+        if (entries.Count == 0)
+            return Json(new { hasDefaults = false });
+
+        // Most common mood (mode)
+        var moods = entries.Where(e => e.MoodEnergy > 0).Select(e => e.MoodEnergy).ToList();
+        int defaultMood = moods.Count > 0 ? moods.GroupBy(m => m).OrderByDescending(g => g.Count()).First().Key : 0;
+
+        // Average water intake
+        var waters = entries.Where(e => e.WaterIntakeLitres > 0).Select(e => e.WaterIntakeLitres).ToList();
+        double defaultWater = waters.Count > 0 ? Math.Round(waters.Average(), 1) : 0;
+
+        // Frequent pain areas (appeared 2+ times in last 14 days)
+        var painAreas = entries
+            .SelectMany(e => e.PainLog)
+            .GroupBy(p => p.BodyArea.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() >= 2)
+            .Select(g => new
+            {
+                bodyArea = g.Key,
+                avgSeverity = Math.Round(g.Average(p => p.Severity), 1),
+                count = g.Count()
+            })
+            .OrderByDescending(x => x.count)
+            .Take(5)
+            .ToList();
+
+        // Frequent exercises
+        var exercises = entries
+            .SelectMany(e => e.WorkoutLog)
+            .Where(w => !string.IsNullOrWhiteSpace(w.Exercise))
+            .GroupBy(w => w.Exercise.Trim(), StringComparer.OrdinalIgnoreCase)
+            .OrderByDescending(g => g.Count())
+            .Take(15)
+            .Select(g => g.Key)
+            .ToList();
+
+        return Json(new
+        {
+            hasDefaults = true,
+            defaultMood,
+            defaultWater,
+            frequentPainAreas = painAreas,
+            frequentExercises = exercises
+        });
+    }
 }

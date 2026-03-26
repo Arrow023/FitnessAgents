@@ -1,5 +1,6 @@
 using FitnessAgentsWeb.Core.Helpers;
 using FitnessAgentsWeb.Core.Interfaces;
+using FitnessAgentsWeb.Core.Services;
 using FitnessAgentsWeb.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,22 +15,31 @@ namespace FitnessAgentsWeb.Controllers
     public class ChatController : Controller
     {
         private readonly IChatAgentService _chatAgent;
+        private readonly IStorageRepository _storage;
+        private readonly MealVisionService _mealVision;
         private readonly ILogger<ChatController> _logger;
 
-        public ChatController(IChatAgentService chatAgent, ILogger<ChatController> logger)
+        public ChatController(IChatAgentService chatAgent, IStorageRepository storage, MealVisionService mealVision, ILogger<ChatController> logger)
         {
             _chatAgent = chatAgent;
+            _storage = storage;
+            _mealVision = mealVision;
             _logger = logger;
         }
 
         /// <summary>
-        /// Serves the dedicated chat page.
+        /// Serves the chat page. Passes onboarding status to the view.
         /// </summary>
         [HttpGet]
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
             ViewData["Title"] = "Chat";
             ViewData["ActiveNav"] = "chat";
+
+            string userId = ResolveUserId();
+            var profile = await _storage.GetUserProfileAsync(userId);
+            ViewBag.NeedsOnboarding = profile is null || !profile.IsOnboardingComplete;
+
             return View();
         }
 
@@ -129,6 +139,52 @@ namespace FitnessAgentsWeb.Controllers
         {
             public string Message { get; set; } = string.Empty;
             public List<ChatHistoryMessage>? History { get; set; }
+        }
+
+        /// <summary>
+        /// Returns the user's onboarding status as JSON.
+        /// </summary>
+        [HttpGet("/api/chat/onboarding-status")]
+        public async Task<IActionResult> OnboardingStatus()
+        {
+            string userId = ResolveUserId();
+            var profile = await _storage.GetUserProfileAsync(userId);
+
+            return Json(new
+            {
+                needsOnboarding = profile is null || !profile.IsOnboardingComplete,
+                completedSteps = profile?.OnboardingCompleted ?? new List<string>()
+            });
+        }
+
+        /// <summary>
+        /// Accepts a meal photo, extracts food items via Vision LLM, returns structured data.
+        /// </summary>
+        [HttpPost("/api/chat/meal-photo")]
+        public async Task<IActionResult> AnalyzeMealPhoto(IFormFile photo)
+        {
+            if (photo is null || photo.Length == 0)
+                return BadRequest(new { error = "No photo provided." });
+
+            if (photo.Length > 10 * 1024 * 1024) // 10MB limit
+                return BadRequest(new { error = "Photo too large. Maximum 10MB." });
+
+            string mimeType = photo.ContentType ?? "image/jpeg";
+            if (!mimeType.StartsWith("image/"))
+                return BadRequest(new { error = "File must be an image." });
+
+            try
+            {
+                using var stream = photo.OpenReadStream();
+                var result = await _mealVision.ExtractMealFromImageAsync(stream, mimeType);
+                _logger.LogInformation("[MealVision] Extracted {ItemCount} items from photo for user {UserId}", result.Items.Count, ResolveUserId());
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[MealVision] Failed to analyze meal photo");
+                return StatusCode(500, new { error = "Failed to analyze the photo. Please try again." });
+            }
         }
     }
 }

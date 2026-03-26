@@ -572,6 +572,80 @@
     cursor: not-allowed;
 }
 
+/* ── Split Pill Action Buttons (Camera + Mic) ─────────────── */
+.chat-pill-actions {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    background: color-mix(in srgb, var(--primary) 8%, var(--surface-solid));
+    border: 1px solid color-mix(in srgb, var(--primary) 18%, transparent);
+    border-radius: 100px;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.chat-pill-actions:hover {
+    border-color: color-mix(in srgb, var(--primary) 35%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 8%, transparent);
+}
+
+.chat-pill-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 34px;
+    border: none;
+    background: transparent;
+    color: var(--primary);
+    cursor: pointer;
+    font-size: 0.82rem;
+    transition: background 0.15s, color 0.15s, transform 0.1s;
+    position: relative;
+}
+
+.chat-pill-btn:hover {
+    background: color-mix(in srgb, var(--primary) 15%, transparent);
+    color: var(--primary-dark, var(--primary));
+}
+
+.chat-pill-btn:active {
+    transform: scale(0.92);
+}
+
+.pill-divider {
+    width: 1px;
+    height: 18px;
+    background: color-mix(in srgb, var(--primary) 22%, transparent);
+    flex-shrink: 0;
+}
+
+/* Listening state — mic button pulses */
+.chat-pill-btn.listening {
+    background: var(--accent-red);
+    color: #fff;
+    animation: pill-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pill-pulse {
+    0%, 100% { box-shadow: inset 0 0 0 0 rgba(239, 68, 68, 0); }
+    50% { box-shadow: inset 0 0 12px 2px rgba(239, 68, 68, 0.25); }
+}
+
+[data-theme="dark"] .chat-pill-actions {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .chat-pill-actions:hover {
+    border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+[data-theme="dark"] .pill-divider {
+    background: rgba(255, 255, 255, 0.1);
+}
+
 .chat-stop-btn {
     width: 38px;
     height: 38px;

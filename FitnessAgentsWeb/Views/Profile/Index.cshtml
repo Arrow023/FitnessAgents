@@ -85,16 +85,9 @@
 
                 <div class="form-group">
                     <label class="form-label">Cuisine Style</label>
-                    <select name="cuisineStyle" class="form-control" style="max-width: 300px;">
-                        @{
-                            var cuisines = new[] { "", "Rajasthani", "Punjabi", "South Indian", "Bengali", "Gujarati", "Maharashtrian", "Hyderabadi", "Kerala", "Kashmiri", "Goan", "North Indian General", "Continental", "Mediterranean", "Other" };
-                            var currentCuisine = Model.Profile?.CuisineStyle ?? "";
-                        }
-                        @foreach (var c in cuisines)
-                        {
-                            <option value="@c" selected="@(c == currentCuisine)">@(string.IsNullOrEmpty(c) ? "— Select cuisine style —" : c)</option>
-                        }
-                    </select>
+                    <input type="text" name="cuisineStyle" class="form-control" style="max-width: 300px;"
+                           value="@(Model.Profile?.CuisineStyle ?? "")"
+                           placeholder="e.g. Rajasthani, South Indian, Mediterranean" />
                     <small style="color: var(--text-secondary);">The AI will use culturally authentic recipes from this cuisine.</small>
                 </div>
 

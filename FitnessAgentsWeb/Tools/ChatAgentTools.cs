@@ -547,6 +547,12 @@ namespace FitnessAgentsWeb.Tools
 
             if (changes.Count == 0) return "No changes specified.";
 
+            // Auto-track onboarding steps
+            if (!string.IsNullOrEmpty(excludedFoodsToAdd) || !string.IsNullOrEmpty(foodPreferences))
+                MarkOnboardingStep(profile, "food");
+            if (!string.IsNullOrEmpty(cuisineStyle))
+                MarkOnboardingStep(profile, "cuisine");
+
             await _storage.SaveUserProfileAsync(_userId, profile);
             _logger.LogInformation("[ChatAgent] Updated food preferences for {UserId}: {Changes}", _userId, string.Join("; ", changes));
             return $"Profile updated successfully:\n{string.Join("\n", changes)}";
@@ -559,6 +565,7 @@ namespace FitnessAgentsWeb.Tools
             if (profile is null) return "Error: User profile not found.";
 
             profile.Preferences = conditions;
+            MarkOnboardingStep(profile, "conditions");
             await _storage.SaveUserProfileAsync(_userId, profile);
             _logger.LogInformation("[ChatAgent] Updated conditions for {UserId}", _userId);
             return $"Conditions updated to: {conditions}";
@@ -591,6 +598,7 @@ namespace FitnessAgentsWeb.Tools
 
             if (changes.Count == 0) return "No schedule changes specified.";
 
+            MarkOnboardingStep(profile, "schedule");
             await _storage.SaveUserProfileAsync(_userId, profile);
             _logger.LogInformation("[ChatAgent] Updated workout schedule for {UserId}", _userId);
             return $"Workout schedule updated:\n{string.Join("\n", changes)}";
@@ -712,6 +720,113 @@ namespace FitnessAgentsWeb.Tools
             await _storage.SavePlanFeedbackAsync(_userId, feedback);
             _logger.LogInformation("[ChatAgent] Plan feedback submitted for {UserId}: {PlanType} rated {Rating}/5", _userId, planType, rating);
             return $"Feedback saved for {planType} plan: {rating}/5 ({difficulty}){(string.IsNullOrEmpty(note) ? "" : $" — {note}")}";
+        }
+
+        [Description("Updates the user's personal information (name, age, notification time). Merges — only updates fields that are provided. MUST call GetUserProfile first. Parameters: firstName (optional), lastName (optional), age (optional, integer), notificationTime (optional, HH:mm 24-hour format).")]
+        public async Task<string> UpdatePersonalInfo(
+            string? firstName = null,
+            string? lastName = null,
+            int? age = null,
+            string? notificationTime = null)
+        {
+            var profile = await _storage.GetUserProfileAsync(_userId);
+            if (profile is null) return "Error: User profile not found.";
+
+            var changes = new List<string>();
+
+            if (!string.IsNullOrEmpty(firstName))
+            {
+                profile.FirstName = firstName;
+                changes.Add($"First name set to: {firstName}");
+            }
+
+            if (!string.IsNullOrEmpty(lastName))
+            {
+                profile.LastName = lastName;
+                changes.Add($"Last name set to: {lastName}");
+            }
+
+            if (age.HasValue)
+            {
+                profile.Age = Math.Clamp(age.Value, 10, 120);
+                changes.Add($"Age set to: {profile.Age}");
+            }
+
+            if (!string.IsNullOrEmpty(notificationTime))
+            {
+                profile.NotificationTime = notificationTime;
+                changes.Add($"Notification time set to: {notificationTime}");
+            }
+
+            if (changes.Count == 0) return "No personal info changes specified.";
+
+            // Auto-track onboarding steps
+            if (!string.IsNullOrEmpty(firstName) || !string.IsNullOrEmpty(lastName))
+                MarkOnboardingStep(profile, "name");
+            if (age.HasValue)
+                MarkOnboardingStep(profile, "age");
+
+            await _storage.SaveUserProfileAsync(_userId, profile);
+            _logger.LogInformation("[ChatAgent] Updated personal info for {UserId}: {Changes}", _userId, string.Join("; ", changes));
+            return $"Profile updated:\n{string.Join("\n", changes)}";
+        }
+
+        /// <summary>
+        /// Auto-tracks an onboarding step when the corresponding write tool executes.
+        /// Also evaluates overall onboarding completion (name + age + conditions = minimum).
+        /// </summary>
+        private static void MarkOnboardingStep(UserProfile profile, string step)
+        {
+            if (!profile.OnboardingCompleted.Contains(step, StringComparer.OrdinalIgnoreCase))
+                profile.OnboardingCompleted.Add(step.ToLowerInvariant());
+
+            var minimumSteps = new[] { "name", "age", "conditions" };
+            profile.IsOnboardingComplete = minimumSteps.All(s =>
+                profile.OnboardingCompleted.Contains(s, StringComparer.OrdinalIgnoreCase));
+        }
+
+        [Description("Gets the user's onboarding status — which steps are completed and which are remaining.")]
+        public async Task<string> GetOnboardingStatus()
+        {
+            var profile = await _storage.GetUserProfileAsync(_userId);
+            if (profile is null) return "No profile found. Onboarding has not started.";
+
+            var allSteps = new[] { "name", "age", "conditions", "food", "cuisine", "schedule" };
+            var completed = profile.OnboardingCompleted;
+            var remaining = allSteps.Where(s => !completed.Contains(s, StringComparer.OrdinalIgnoreCase)).ToList();
+
+            var sb = new StringBuilder();
+            sb.AppendLine($"Onboarding complete: {profile.IsOnboardingComplete}");
+            sb.AppendLine($"Completed steps: {(completed.Count > 0 ? string.Join(", ", completed) : "None")}");
+            sb.AppendLine($"Remaining steps: {(remaining.Count > 0 ? string.Join(", ", remaining) : "All done!")}");
+            return sb.ToString();
+        }
+
+        [Description("Gets a list of frequently eaten foods from the user's recent diary entries (last 14 days). Useful for suggesting meals during diary logging or chat-based meal tracking.")]
+        public async Task<string> GetFrequentMeals()
+        {
+            var entries = await _storage.GetRecentDiaryEntriesAsync(_userId, 14);
+            if (entries.Count == 0) return "No diary entries found. No meal history available yet.";
+
+            var mealCounts = entries
+                .SelectMany(e => e.ActualMeals)
+                .Where(m => !string.IsNullOrWhiteSpace(m.FoodName))
+                .GroupBy(m => m.FoodName.Trim(), StringComparer.OrdinalIgnoreCase)
+                .OrderByDescending(g => g.Count())
+                .Take(15)
+                .ToList();
+
+            if (mealCounts.Count == 0) return "No meals logged in last 14 days.";
+
+            var sb = new StringBuilder();
+            sb.AppendLine("=== Frequently Eaten Foods (last 14 days) ===");
+            foreach (var group in mealCounts)
+            {
+                var typicalQty = group.First().Quantity;
+                var typicalTime = group.First().MealTime;
+                sb.AppendLine($"  {group.Key} — {group.Count()}x (typical: {typicalQty}, {typicalTime})");
+            }
+            return sb.ToString();
         }
     }
 }

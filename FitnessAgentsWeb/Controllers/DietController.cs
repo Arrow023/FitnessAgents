@@ -144,6 +144,36 @@ public class DietController : Controller
         return RedirectToAction("Detail", new { userId = model.UserId, day = model.DayOfWeek });
     }
 
+    /// <summary>
+    /// API endpoint for inline quick feedback (thumbs up/down).
+    /// </summary>
+    [HttpPost]
+    public async Task<IActionResult> QuickFeedback([FromBody] QuickFeedbackRequest request)
+    {
+        string userId = ResolveUserId(request?.UserId);
+
+        var feedback = new Models.PlanFeedback
+        {
+            PlanId = $"diet_{DateTime.UtcNow:yyyy-MM-dd}",
+            PlanType = "diet",
+            FeedbackDate = DateTime.UtcNow,
+            Rating = Math.Clamp(request?.Rating ?? 3, 1, 5),
+            Difficulty = request?.Difficulty ?? "just-right",
+            Note = request?.Note ?? string.Empty
+        };
+
+        await _storageRepository.SavePlanFeedbackAsync(userId, feedback);
+        return Json(new { success = true });
+    }
+
+    public sealed class QuickFeedbackRequest
+    {
+        public string? UserId { get; set; }
+        public int Rating { get; set; }
+        public string? Difficulty { get; set; }
+        public string? Note { get; set; }
+    }
+
     private string ResolveUserId(string? userId)
     {
         if (User.IsInRole("User"))

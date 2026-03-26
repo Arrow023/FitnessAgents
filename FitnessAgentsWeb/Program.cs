@@ -1,4 +1,5 @@
 using Serilog;
+using Serilog.Sinks.OpenTelemetry;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using FitnessAgentsWeb.Core.Factories;
 using FitnessAgentsWeb.Core.Interfaces;
@@ -13,16 +14,47 @@ var builder = WebApplication.CreateBuilder(args);
 var logsFolder = Path.Combine(builder.Environment.ContentRootPath, "Logs");
 if (!Directory.Exists(logsFolder)) Directory.CreateDirectory(logsFolder);
 
-builder.Host.UseSerilog((context, services, configuration) => configuration
-    .MinimumLevel.Information()
-    .Enrich.FromLogContext()
-    .Enrich.With(new FitnessAgentsWeb.Core.Logging.TimezoneTimestampEnricher())
-    .WriteTo.Console(outputTemplate: "[{AppTimestamp}] {Level:u3} {Message:lj}{NewLine}{Exception}")
-    .WriteTo.File(
-        Path.Combine(logsFolder, "fitness-assist-.log"), 
-        rollingInterval: RollingInterval.Day,
-        retainedFileCountLimit: 7,
-        outputTemplate: "[{AppTimestamp}] {Level:u3} {Message:lj}{NewLine}{Exception}"));
+builder.Host.UseSerilog((context, services, configuration) =>
+{
+    var otelSection = context.Configuration.GetSection("OpenTelemetry");
+    var otelEndpoint = otelSection["Endpoint"];
+    var serviceName = otelSection["ServiceName"] ?? "HealthAssistant";
+    var apiKey = Environment.GetEnvironmentVariable("NEW_RELIC_LICENSE_KEY")
+                ?? otelSection["Headers:api-key"];
+
+    configuration
+        .MinimumLevel.Information()
+        .Enrich.FromLogContext()
+        .Enrich.With(new FitnessAgentsWeb.Core.Logging.TimezoneTimestampEnricher())
+        .Enrich.With(new FitnessAgentsWeb.Core.Logging.OtelLogEnricher())
+        .WriteTo.Console(outputTemplate: "[{AppTimestamp}] {Level:u3} {Message:lj}{NewLine}{Exception}")
+        .WriteTo.File(
+            Path.Combine(logsFolder, "fitness-assist-.log"),
+            rollingInterval: RollingInterval.Day,
+            retainedFileCountLimit: 7,
+            outputTemplate: "[{AppTimestamp}] {Level:u3} {Message:lj}{NewLine}{Exception}");
+
+    if (!string.IsNullOrWhiteSpace(otelEndpoint) && !string.IsNullOrWhiteSpace(apiKey))
+    {
+        configuration.WriteTo.OpenTelemetry(options =>
+        {
+            options.Endpoint = otelEndpoint;
+            options.Protocol = OtlpProtocol.HttpProtobuf;
+            options.IncludedData = IncludedData.MessageTemplateTextAttribute
+                                | IncludedData.TraceIdField
+                                | IncludedData.SpanIdField
+                                | IncludedData.SpecRequiredResourceAttributes;
+            options.ResourceAttributes = new Dictionary<string, object>
+            {
+                ["service.name"] = serviceName
+            };
+            options.Headers = new Dictionary<string, string>
+            {
+                ["api-key"] = apiKey
+            };
+        });
+    }
+});
 
 // Add MVC services for upcoming Dashboard
 builder.Services.AddControllersWithViews();
@@ -61,6 +93,7 @@ builder.Services.AddScoped<INotificationService>(sp =>
     return factory.Create();
 });
 builder.Services.AddSingleton<InBodyOcrService>();
+builder.Services.AddSingleton<MealVisionService>();
 builder.Services.AddSingleton<IAiOrchestratorService, AiOrchestratorService>();
 builder.Services.AddScoped<IChatAgentService, ChatAgentService>();
 

@@ -43,13 +43,18 @@ namespace FitnessAgentsWeb.Core.Services
             var tools = new ChatAgentTools(_storage, _healthProcessor, _notifications, _jobTracker, userId, _logger);
             IChatClient chatClient = GetChatClient();
 
+            // Check onboarding status to inject per-turn guidance
+            var profile = await _storage.GetUserProfileAsync(userId);
+            bool isOnboarding = profile is not null && !profile.IsOnboardingComplete;
+            string? onboardingInjection = isOnboarding ? BuildOnboardingInjection(profile!, conversationHistory) : null;
+
             var chatOptions = new ChatOptions
             {
                 Tools = BuildToolDefinitions(tools),
-                Temperature = 0.7f
+                Temperature = isOnboarding ? 0.3f : 0.7f // Lower temperature for deterministic tool-calling during onboarding
             };
 
-            var messages = BuildMessageHistory(conversationHistory, userMessage, userId);
+            var messages = BuildMessageHistory(conversationHistory, userMessage, userId, onboardingInjection);
 
             // Emit initial thinking event
             yield return new ChatStreamEvent { Type = ChatStreamEventType.Thinking, Text = "Understanding your request..." };
@@ -174,10 +179,13 @@ namespace FitnessAgentsWeb.Core.Services
                 AIFunctionFactory.Create(tools.UpdateWorkoutSchedule),
                 AIFunctionFactory.Create(tools.UpsertDiaryEntry),
                 AIFunctionFactory.Create(tools.SubmitPlanFeedback),
+                AIFunctionFactory.Create(tools.UpdatePersonalInfo),
+                AIFunctionFactory.Create(tools.GetOnboardingStatus),
+                AIFunctionFactory.Create(tools.GetFrequentMeals),
             ];
         }
 
-        private List<Microsoft.Extensions.AI.ChatMessage> BuildMessageHistory(List<ChatHistoryMessage> history, string userMessage, string userId)
+        private List<Microsoft.Extensions.AI.ChatMessage> BuildMessageHistory(List<ChatHistoryMessage> history, string userMessage, string userId, string? onboardingInjection)
         {
             var now = GetAppNow();
             string systemPrompt = $@"You are FitnessAgent, a friendly and knowledgeable personal health assistant.
@@ -192,20 +200,30 @@ CORE BEHAVIOR:
 - For health insights, use GetHealthInsights to provide data-driven responses.
 - Format responses using markdown for readability (bold, lists, etc.).
 
+ONBOARDING:
+- During onboarding, you will receive a system instruction telling you exactly which tool to call. Follow it precisely.
+- Be conversational and encouraging. Don't make it feel like a form.
+- Ask only ONE question at a time.
+- If the user says ""skip"" or ""I'll do this later"", respect that and move on.
+
 TOOL USAGE RULES:
 1. Before any UPDATE operation, call the corresponding GET tool first.
-2. For profile changes: GetUserProfile → then UpdateFoodPreferences / UpdateConditions / UpdateWorkoutSchedule
-3. For diary entries: GetTodayDiary or GetRecentDiaryHistory → then UpsertDiaryEntry with the target date (merges, never replaces). If the user mentions a specific date (e.g. ""yesterday"", ""last Monday""), resolve it to yyyy-MM-dd and pass it as the date parameter.
-4. For health questions: GetHealthInsights and/or GetTodayPlans
-5. For sleep details: GetSleepDetails for stage breakdowns, efficiency, bedtime/wake time, vitals
-6. For exercise questions: GetExerciseHistory for sessions tracked by their device
-7. For weekly plans: GetWeeklyWorkoutPlanHistory / GetWeeklyDietPlanHistory for Mon-Sun schedule
-8. For pattern analysis: GetRecentDiaryHistory and/or GetWeeklyDigest for behavioral trends
-9. For body composition: GetInBodyAnalysis for segmental lean balance, targets, metabolic health
-10. For past feedback: GetRecentFeedback to see how the user rated previous plans
-11. For notifications: GetNotifications to check recent alerts
-12. For plan status: GetPlanGenerationStatus to check if plans are being generated
-13. When user provides plan feedback: SubmitPlanFeedback
+2. CRITICAL: When the user provides information (name, age, food preferences, conditions, schedule), you MUST call the appropriate save tool. Acknowledging without saving is NOT acceptable — the data will be lost.
+3. For profile changes: GetUserProfile → then UpdatePersonalInfo / UpdateFoodPreferences / UpdateConditions / UpdateWorkoutSchedule
+4. For diary entries: GetTodayDiary or GetRecentDiaryHistory → then UpsertDiaryEntry with the target date (merges, never replaces). If the user mentions a specific date (e.g. ""yesterday"", ""last Monday""), resolve it to yyyy-MM-dd and pass it as the date parameter.
+5. For health questions: GetHealthInsights and/or GetTodayPlans
+6. For sleep details: GetSleepDetails for stage breakdowns, efficiency, bedtime/wake time, vitals
+7. For exercise questions: GetExerciseHistory for sessions tracked by their device
+8. For weekly plans: GetWeeklyWorkoutPlanHistory / GetWeeklyDietPlanHistory for Mon-Sun schedule
+9. For pattern analysis: GetRecentDiaryHistory and/or GetWeeklyDigest for behavioral trends
+10. For body composition: GetInBodyAnalysis for segmental lean balance, targets, metabolic health
+11. For past feedback: GetRecentFeedback to see how the user rated previous plans
+12. For notifications: GetNotifications to check recent alerts
+13. For plan status: GetPlanGenerationStatus to check if plans are being generated
+14. When user provides plan feedback: SubmitPlanFeedback
+15. For onboarding status: GetOnboardingStatus
+16. For personal info (name/age): UpdatePersonalInfo
+17. For meal suggestions: GetFrequentMeals to see frequently eaten foods
 
 RESPONSE STYLE:
 - Keep responses focused and actionable
@@ -233,8 +251,87 @@ RESPONSE STYLE:
                 messages.Add(new Microsoft.Extensions.AI.ChatMessage(role, msg.Content));
             }
 
-            messages.Add(new Microsoft.Extensions.AI.ChatMessage(ChatRole.User, userMessage));
+            // Inject per-turn onboarding context by prepending to the user's message
+            string finalUserMessage = !string.IsNullOrEmpty(onboardingInjection)
+                ? $"[SYSTEM CONTEXT: {onboardingInjection}]\n\nUser message: {userMessage}"
+                : userMessage;
+
+            messages.Add(new Microsoft.Extensions.AI.ChatMessage(ChatRole.User, finalUserMessage));
             return messages;
+        }
+
+        /// <summary>
+        /// Builds a targeted system injection for the current onboarding turn.
+        /// Reads the profile's OnboardingCompleted list and tells the LLM exactly what to do next.
+        /// </summary>
+        private static string BuildOnboardingInjection(UserProfile profile, List<ChatHistoryMessage> history)
+        {
+            var completed = profile.OnboardingCompleted;
+            bool isFirstMessage = history.Count == 0;
+
+            // Determine the next incomplete step
+            if (isFirstMessage)
+            {
+                return @"[ONBOARDING ACTIVE] The user just started onboarding. Welcome them warmly and ask: ""What's your name?"" Do NOT ask multiple questions. Wait for their answer.";
+            }
+
+            if (!completed.Contains("name", StringComparer.OrdinalIgnoreCase))
+            {
+                return @"[ONBOARDING ACTIVE] The user is answering the NAME question.
+ACTION REQUIRED: Extract their first name (and last name if given) from the message.
+You MUST call UpdatePersonalInfo with the firstName (and lastName if provided).
+After saving, ask: ""How old are you?""
+Do NOT skip the tool call. The data is lost if you don't call the tool.";
+            }
+
+            if (!completed.Contains("age", StringComparer.OrdinalIgnoreCase))
+            {
+                return @"[ONBOARDING ACTIVE] The user is answering the AGE question.
+ACTION REQUIRED: Extract their age from the message.
+You MUST call UpdatePersonalInfo with the age parameter.
+After saving, ask: ""Do you have any injuries, health conditions, or areas of pain I should know about? (e.g. knee injury, back pain, diabetes)""
+Do NOT skip the tool call.";
+            }
+
+            if (!completed.Contains("conditions", StringComparer.OrdinalIgnoreCase))
+            {
+                return @"[ONBOARDING ACTIVE] The user is answering the CONDITIONS/INJURIES question.
+ACTION REQUIRED: Extract their conditions/injuries from the message.
+You MUST call UpdateConditions with the conditions text. If they say none/nothing, call UpdateConditions with ""No reported pain or injuries.""
+After saving, congratulate them — core onboarding is done! Then ask: ""Any foods you avoid or are allergic to?""
+Do NOT skip the tool call.";
+            }
+
+            if (!completed.Contains("food", StringComparer.OrdinalIgnoreCase))
+            {
+                return @"[ONBOARDING ACTIVE] The user is answering the FOOD RESTRICTIONS question.
+ACTION REQUIRED: Extract foods they avoid from the message.
+You MUST call UpdateFoodPreferences with excludedFoodsToAdd (comma-separated). If none, use UpdateFoodPreferences with foodPreferences set to ""No specific restrictions"".
+After saving, ask: ""What cuisine do you prefer? (e.g. Rajasthani, Punjabi, South Indian, Mediterranean)""
+Do NOT skip the tool call.";
+            }
+
+            if (!completed.Contains("cuisine", StringComparer.OrdinalIgnoreCase))
+            {
+                return @"[ONBOARDING ACTIVE] The user is answering the CUISINE question.
+ACTION REQUIRED: Extract their cuisine preference from the message.
+You MUST call UpdateFoodPreferences with cuisineStyle set to their answer.
+After saving, ask: ""What's your weekly workout split? Tell me what you'd like to focus on each day, or say 'use defaults'.""
+Do NOT skip the tool call.";
+            }
+
+            if (!completed.Contains("schedule", StringComparer.OrdinalIgnoreCase))
+            {
+                return @"[ONBOARDING ACTIVE] The user is answering the WORKOUT SCHEDULE question.
+ACTION REQUIRED: Extract their day-by-day workout schedule from the message.
+You MUST call UpdateWorkoutSchedule with the appropriate day parameters (monday, tuesday, etc.).
+If they say 'use defaults' or 'keep current', just acknowledge — no tool call needed.
+After saving, tell them setup is complete and they're ready to go!
+Do NOT skip the tool call.";
+            }
+
+            // All steps done — no injection needed
+            return string.Empty;
         }
 
         private static async Task<string> ExecuteToolAsync(ChatAgentTools tools, string toolName, IReadOnlyDictionary<string, object?>? args)
@@ -283,6 +380,13 @@ RESPONSE STYLE:
                     GetArg(args, "difficulty") ?? "just-right",
                     GetArg(args, "skippedItems"),
                     GetArg(args, "note")),
+                nameof(ChatAgentTools.UpdatePersonalInfo) => await tools.UpdatePersonalInfo(
+                    GetArg(args, "firstName"),
+                    GetArg(args, "lastName"),
+                    GetArgInt(args, "age"),
+                    GetArg(args, "notificationTime")),
+                nameof(ChatAgentTools.GetOnboardingStatus) => await tools.GetOnboardingStatus(),
+                nameof(ChatAgentTools.GetFrequentMeals) => await tools.GetFrequentMeals(),
                 _ => $"Unknown tool: {toolName}"
             };
         }
@@ -329,6 +433,9 @@ RESPONSE STYLE:
                 nameof(ChatAgentTools.UpdateWorkoutSchedule) => "Updating workout schedule",
                 nameof(ChatAgentTools.UpsertDiaryEntry) => "Updating diary entry",
                 nameof(ChatAgentTools.SubmitPlanFeedback) => "Submitting plan feedback",
+                nameof(ChatAgentTools.UpdatePersonalInfo) => "Updating personal info",
+                nameof(ChatAgentTools.GetOnboardingStatus) => "Checking onboarding status",
+                nameof(ChatAgentTools.GetFrequentMeals) => "Loading frequent meals",
                 _ => toolName
             };
         }

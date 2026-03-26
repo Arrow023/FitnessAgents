@@ -52,6 +52,25 @@
                 </div>
             }
         }
+
+        <!-- Inline Quick Feedback -->
+        <div id="dietInlineFeedback" style="margin-top: 1.25rem; padding: 0.85rem 1rem; background: var(--primary-subtle); border-radius: 0.75rem; border: 1px solid color-mix(in srgb, var(--primary) 15%, transparent);">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                <span style="font-size: 0.85rem; font-weight: 600; color: var(--text);">How's today's diet plan?</span>
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                    <button type="button" class="diet-feedback-btn" data-rating="5" onclick="submitDietQuickFeedback(5, 'just-right')"
+                            style="padding: 0.3rem 0.65rem; border: 1.5px solid var(--border); border-radius: 0.5rem; background: transparent; cursor: pointer; font-size: 0.95rem; transition: all 0.15s;" title="Great!">👍</button>
+                    <button type="button" class="diet-feedback-btn" data-rating="3" onclick="submitDietQuickFeedback(3, 'just-right')"
+                            style="padding: 0.3rem 0.65rem; border: 1.5px solid var(--border); border-radius: 0.5rem; background: transparent; cursor: pointer; font-size: 0.95rem; transition: all 0.15s;" title="Okay">😐</button>
+                    <button type="button" class="diet-feedback-btn" data-rating="1" onclick="submitDietQuickFeedback(1, 'too-much')"
+                            style="padding: 0.3rem 0.65rem; border: 1.5px solid var(--border); border-radius: 0.5rem; background: transparent; cursor: pointer; font-size: 0.95rem; transition: all 0.15s;" title="Not great">👎</button>
+                    <a href="@Url.Action("Feedback", "Diet", new { userId = Model.UserId })" style="font-size: 0.72rem; color: var(--text-secondary); margin-left: 0.5rem; text-decoration: underline;">Detailed feedback</a>
+                </div>
+            </div>
+            <div id="dietFeedbackStatus" style="display: none; margin-top: 0.4rem; font-size: 0.78rem; color: var(--accent-green); font-weight: 600;">
+                <i class="fa-solid fa-check-circle"></i> Feedback saved!
+            </div>
+        </div>
     </div>
 }
 else
@@ -105,4 +124,33 @@ else
         <div class="empty-state-title">No diet history this week</div>
         <div class="empty-state-text">Diet plans appear here after each AI workout generation.</div>
     </div>
+}
+
+@section Scripts {
+<script>
+function submitDietQuickFeedback(rating, difficulty) {
+    var buttons = document.querySelectorAll('.diet-feedback-btn');
+    buttons.forEach(function(b) {
+        b.style.opacity = '0.4';
+        b.disabled = true;
+        if (parseInt(b.getAttribute('data-rating')) === rating) {
+            b.style.opacity = '1';
+            b.style.borderColor = 'var(--primary)';
+            b.style.background = 'var(--primary-subtle)';
+        }
+    });
+
+    fetch('@Url.Action("QuickFeedback", "Diet")', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: '@Model.UserId', rating: rating, difficulty: difficulty })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.success) {
+            document.getElementById('dietFeedbackStatus').style.display = 'block';
+        }
+    }).catch(function() {
+        buttons.forEach(function(b) { b.style.opacity = '1'; b.disabled = false; });
+    });
+}
+</script>
 }

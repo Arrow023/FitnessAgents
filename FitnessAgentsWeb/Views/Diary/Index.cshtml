@@ -113,8 +113,23 @@
                                 <i class="fa-solid fa-check-double"></i> Followed Plan
                             </button>
                         }
+                        <button type="button" class="btn btn-outline btn-sm" id="sameAsYesterdayBtn" onclick="loadYesterday()" style="font-size: 0.78rem;" title="Copy yesterday's diary as a starting point">
+                            <i class="fa-solid fa-clock-rotate-left"></i> Same as Yesterday
+                        </button>
+                        <label class="btn btn-outline btn-sm" style="font-size: 0.78rem; cursor: pointer;" title="Log meal from a photo">
+                            <i class="fa-solid fa-camera"></i> Photo
+                            <input type="file" id="diaryMealPhotoInput" accept="image/*" capture="environment" style="display:none;" />
+                        </label>
                         <button type="button" class="btn btn-outline btn-sm" onclick="addExtraMealRow()" style="font-size: 0.78rem;"><i class="fa-solid fa-plus"></i> Extra Meal</button>
                     </div>
+                </div>
+
+                <!-- Meal suggestions chips (populated via JS) -->
+                <div id="mealSuggestionsBar" style="display: none; margin-bottom: 0.75rem; padding: 0.5rem 0.65rem; background: var(--primary-subtle); border-radius: 0.5rem; border: 1px solid color-mix(in srgb, var(--primary) 15%, transparent);">
+                    <div style="font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem;">
+                        <i class="fa-solid fa-clock-rotate-left" style="margin-right: 0.2rem;"></i>Frequently eaten
+                    </div>
+                    <div id="mealSuggestionsChips" style="display: flex; flex-wrap: wrap; gap: 0.35rem;"></div>
                 </div>
 
                 @if (todayDiet?.Meals != null && todayDiet.Meals.Count > 0)
@@ -807,6 +822,184 @@
         if (selected) {
             window.location.href = '@Url.Action("Index", "Diary")?userId=@userId&date=' + selected;
         }
+    });
+
+    // ═══════════════════════════════════════════════════════
+    // SMART DEFAULTS & QUICK ACTIONS
+    // ═══════════════════════════════════════════════════════
+
+    // Load meal suggestions on page load
+    (function loadMealSuggestions() {
+        fetch('@Url.Action("MealSuggestions", "Diary")?userId=@userId')
+            .then(function(r) { return r.json(); })
+            .then(function(suggestions) {
+                if (!suggestions || suggestions.length === 0) return;
+                var bar = document.getElementById('mealSuggestionsBar');
+                var chips = document.getElementById('mealSuggestionsChips');
+                bar.style.display = 'block';
+                suggestions.forEach(function(s) {
+                    var chip = document.createElement('button');
+                    chip.type = 'button';
+                    chip.className = 'meal-suggestion-chip';
+                    chip.textContent = s.foodName;
+                    chip.title = s.quantity + ' (' + s.mealTime + ') — eaten ' + s.count + 'x';
+                    chip.style.cssText = 'padding: 0.2rem 0.55rem; border: 1px solid var(--border); border-radius: 999px; background: var(--card-bg); color: var(--text); font-size: 0.72rem; cursor: pointer; transition: all 0.15s; font-weight: 500;';
+                    chip.addEventListener('mouseenter', function() { this.style.borderColor = 'var(--primary)'; this.style.color = 'var(--primary)'; });
+                    chip.addEventListener('mouseleave', function() { this.style.borderColor = 'var(--border)'; this.style.color = 'var(--text)'; });
+                    chip.addEventListener('click', function() {
+                        addExtraMealRow();
+                        var rows = document.querySelectorAll('#extraMealsContainer .extra-meal-row');
+                        var lastRow = rows[rows.length - 1];
+                        if (lastRow) {
+                            var foodInput = lastRow.querySelector('input[placeholder*="Food"]') || lastRow.querySelectorAll('input')[1];
+                            var qtyInput = lastRow.querySelector('input[placeholder*="Qty"]') || lastRow.querySelectorAll('input')[2];
+                            var timeSelect = lastRow.querySelector('select');
+                            if (foodInput) foodInput.value = s.foodName;
+                            if (qtyInput) qtyInput.value = s.quantity;
+                            if (timeSelect) timeSelect.value = s.mealTime;
+                        }
+                    });
+                    chips.appendChild(chip);
+                });
+            })
+            .catch(function() { /* silently ignore */ });
+    })();
+
+    // Load smart defaults (mood, water pre-fill)
+    (function loadSmartDefaults() {
+        fetch('@Url.Action("SmartDefaults", "Diary")?userId=@userId')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data || !data.hasDefaults) return;
+
+                // Pre-fill mood if not already set
+                var moodInput = document.getElementById('moodEnergyInput');
+                if (moodInput && (!moodInput.value || moodInput.value === '0') && data.defaultMood > 0) {
+                    moodInput.value = data.defaultMood;
+                    // Activate the corresponding mood button
+                    document.querySelectorAll('.mood-btn').forEach(function(btn) {
+                        if (parseInt(btn.getAttribute('data-value')) === data.defaultMood) { btn.click(); }
+                    });
+                }
+
+                // Pre-fill water if not already set
+                var waterInput = document.querySelector('input[name="waterIntake"]');
+                if (waterInput && (!waterInput.value || parseFloat(waterInput.value) === 0) && data.defaultWater > 0) {
+                    waterInput.value = data.defaultWater;
+                }
+            })
+            .catch(function() { /* silently ignore */ });
+    })();
+
+    // "Same as Yesterday" — copies yesterday's diary into today's form
+    function loadYesterday() {
+        var btn = document.getElementById('sameAsYesterdayBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
+
+        fetch('@Url.Action("YesterdayEntry", "Diary")?userId=@userId')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data.found) {
+                    btn.innerHTML = '<i class="fa-solid fa-xmark"></i> No data';
+                    setTimeout(function() {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa-solid fa-clock-rotate-left"></i> Same as Yesterday';
+                    }, 2000);
+                    return;
+                }
+
+                // Add yesterday's meals as extra rows
+                if (data.meals && data.meals.length > 0) {
+                    data.meals.forEach(function(m) {
+                        addExtraMealRow();
+                        var rows = document.querySelectorAll('#extraMealsContainer .extra-meal-row');
+                        var lastRow = rows[rows.length - 1];
+                        if (lastRow) {
+                            var foodInput = lastRow.querySelector('input[placeholder*="Food"]') || lastRow.querySelectorAll('input')[1];
+                            var qtyInput = lastRow.querySelector('input[placeholder*="Qty"]') || lastRow.querySelectorAll('input')[2];
+                            var timeSelect = lastRow.querySelector('select');
+                            if (foodInput) foodInput.value = m.foodName || '';
+                            if (qtyInput) qtyInput.value = m.quantity || '';
+                            if (timeSelect) timeSelect.value = m.mealTime || 'Morning';
+                        }
+                    });
+                }
+
+                // Pre-fill mood and water
+                if (data.moodEnergy > 0) {
+                    var moodInput = document.getElementById('moodEnergyInput');
+                    if (moodInput) moodInput.value = data.moodEnergy;
+                    document.querySelectorAll('.mood-btn').forEach(function(b) {
+                        if (parseInt(b.getAttribute('data-value')) === data.moodEnergy) b.click();
+                    });
+                }
+                if (data.waterIntakeLitres > 0) {
+                    var waterInput = document.querySelector('input[name="waterIntake"]');
+                    if (waterInput) waterInput.value = data.waterIntakeLitres;
+                }
+
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Loaded!';
+                btn.style.borderColor = 'var(--accent-green)';
+                btn.style.color = 'var(--accent-green)';
+                setTimeout(function() {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-clock-rotate-left"></i> Same as Yesterday';
+                    btn.style.borderColor = '';
+                    btn.style.color = '';
+                }, 2500);
+            })
+            .catch(function() {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-clock-rotate-left"></i> Same as Yesterday';
+            });
+    }
+
+    // Meal photo upload from diary page
+    document.getElementById('diaryMealPhotoInput').addEventListener('change', function() {
+        if (!this.files || !this.files[0]) return;
+        var file = this.files[0];
+        if (file.size > 10 * 1024 * 1024) { alert('Photo too large. Maximum 10MB.'); return; }
+
+        var btn = this.parentElement;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyzing...';
+        btn.style.pointerEvents = 'none';
+
+        var formData = new FormData();
+        formData.append('photo', file);
+
+        fetch('/api/chat/meal-photo', {
+            method: 'POST',
+            body: formData
+        }).then(function(r) { return r.json(); }).then(function(result) {
+            if (result.error) {
+                alert(result.error);
+                return;
+            }
+            // Add detected items as extra meal rows
+            (result.items || []).forEach(function(item) {
+                addExtraMealRow();
+                var rows = document.querySelectorAll('#extraMealsContainer .extra-meal-row');
+                var lastRow = rows[rows.length - 1];
+                if (lastRow) {
+                    var foodInput = lastRow.querySelector('input[placeholder*="Food"]') || lastRow.querySelectorAll('input')[1];
+                    var qtyInput = lastRow.querySelector('input[placeholder*="Qty"]') || lastRow.querySelectorAll('input')[2];
+                    var timeSelect = lastRow.querySelector('select');
+                    if (foodInput) foodInput.value = item.foodName || '';
+                    if (qtyInput) qtyInput.value = item.quantity || '';
+                    if (timeSelect && result.mealType) timeSelect.value = result.mealType;
+                }
+            });
+        }).catch(function() {
+            alert('Failed to analyze photo. Try typing your meal instead.');
+        }).finally(function() {
+            btn.innerHTML = '<i class="fa-solid fa-camera"></i> Photo <input type="file" id="diaryMealPhotoInput" accept="image/*" capture="environment" style="display:none;" />';
+            btn.style.pointerEvents = '';
+            // Re-attach event listener to new input
+            document.getElementById('diaryMealPhotoInput').addEventListener('change', arguments.callee);
+        });
+
+        this.value = '';
     });
 </script>
 }

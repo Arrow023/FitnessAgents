@@ -117,6 +117,25 @@
             </div>
         }
     </div>
+
+    <!-- Inline Quick Feedback for Today's Workout -->
+    <div id="workoutInlineFeedback" style="margin-top: 1rem; padding: 0.85rem 1rem; background: var(--primary-subtle); border-radius: 0.75rem; border: 1px solid color-mix(in srgb, var(--primary) 15%, transparent);" class="fade-up">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+            <span style="font-size: 0.85rem; font-weight: 600; color: var(--text);">How's this week's workout plan?</span>
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <button type="button" class="workout-feedback-btn" data-rating="5" onclick="submitWorkoutQuickFeedback(5, 'just-right')"
+                        style="padding: 0.3rem 0.65rem; border: 1.5px solid var(--border); border-radius: 0.5rem; background: transparent; cursor: pointer; font-size: 0.95rem; transition: all 0.15s;" title="Great!">💪</button>
+                <button type="button" class="workout-feedback-btn" data-rating="3" onclick="submitWorkoutQuickFeedback(3, 'just-right')"
+                        style="padding: 0.3rem 0.65rem; border: 1.5px solid var(--border); border-radius: 0.5rem; background: transparent; cursor: pointer; font-size: 0.95rem; transition: all 0.15s;" title="Okay">😐</button>
+                <button type="button" class="workout-feedback-btn" data-rating="1" onclick="submitWorkoutQuickFeedback(1, 'too-hard')"
+                        style="padding: 0.3rem 0.65rem; border: 1.5px solid var(--border); border-radius: 0.5rem; background: transparent; cursor: pointer; font-size: 0.95rem; transition: all 0.15s;" title="Too hard">😓</button>
+                <a href="@Url.Action("Feedback", "Workout", new { userId = Model.UserId })" style="font-size: 0.72rem; color: var(--text-secondary); margin-left: 0.5rem; text-decoration: underline;">Detailed</a>
+            </div>
+        </div>
+        <div id="workoutFeedbackStatus" style="display: none; margin-top: 0.4rem; font-size: 0.78rem; color: var(--accent-green); font-weight: 600;">
+            <i class="fa-solid fa-check-circle"></i> Feedback saved!
+        </div>
+    </div>
 }
 else
 {
@@ -237,6 +256,26 @@ else
         toast.innerHTML = '<i class="fa-solid ' + icon + '"></i> ' + msg;
         container.appendChild(toast);
         setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3500);
+    }
+
+    async function submitWorkoutQuickFeedback(rating, difficulty) {
+        const userId = '@Model.UserId';
+        const btns = document.querySelectorAll('.workout-feedback-btn');
+        btns.forEach(b => {
+            b.style.opacity = b.dataset.rating == rating ? '1' : '0.4';
+            b.disabled = true;
+        });
+        try {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            const res = await fetch('/Workout/QuickFeedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token || '' },
+                body: JSON.stringify({ userId: userId, rating: rating, difficulty: difficulty, note: '' })
+            });
+            if (res.ok) {
+                document.getElementById('workoutFeedbackStatus').style.display = '';
+            }
+        } catch (e) { console.error('Feedback error', e); }
     }
 </script>
 }

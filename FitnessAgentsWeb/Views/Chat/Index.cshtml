@@ -79,6 +79,16 @@
     <!-- Input Area -->
     <div class="chat-input-area">
         <div class="chat-input-wrapper">
+            <input type="file" id="mealPhotoInput" accept="image/*" capture="environment" style="display:none;" />
+            <div class="chat-pill-actions">
+                <button class="chat-pill-btn pill-left" id="mealPhotoBtn" title="Log meal from photo">
+                    <i class="fa-solid fa-camera"></i>
+                </button>
+                <div class="pill-divider"></div>
+                <button class="chat-pill-btn pill-right" id="voiceMicBtn" title="Voice input">
+                    <i class="fa-solid fa-microphone"></i>
+                </button>
+            </div>
             <textarea class="chat-input" id="chatInput"
                       placeholder="Ask about your health data, update preferences, log meals..."
                       rows="1"></textarea>
@@ -97,6 +107,7 @@
     var conversationHistory = [];
     var isStreaming = false;
     var currentAbortController = null;
+    var needsOnboarding = @Html.Raw(ViewBag.NeedsOnboarding == true ? "true" : "false");
 
     // ── DOM Refs ───────────────────────────────────────────
     var chatPage = document.getElementById('chatPage');
@@ -107,6 +118,9 @@
     var chatScrollBtn = document.getElementById('chatScrollBtn');
     var chatTopbar = document.getElementById('chatTopbar');
     var chatNewBtn = document.getElementById('chatNewBtn');
+    var mealPhotoBtn = document.getElementById('mealPhotoBtn');
+    var mealPhotoInput = document.getElementById('mealPhotoInput');
+    var voiceMicBtn = document.getElementById('voiceMicBtn');
 
     // ── Auto-resize Textarea ──────────────────────────────
     chatInput.addEventListener('input', function() {
@@ -471,6 +485,139 @@
         }
     }
 
+    // ═══════════════════════════════════════════════════════
+    // ONBOARDING — Auto-trigger for new users
+    // ═══════════════════════════════════════════════════════
+    if (needsOnboarding) {
+        setTimeout(function() {
+            chatInput.value = 'Hi! I just signed up.';
+            sendMessage();
+        }, 500);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // VOICE INPUT — Browser Speech-to-Text via Web Speech API
+    // ═══════════════════════════════════════════════════════
+    var isListening = false;
+    var recognition = null;
+
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        recognition.lang = 'en-IN';
+
+        recognition.onresult = function(event) {
+            var transcript = '';
+            for (var i = event.resultIndex; i < event.results.length; i++) {
+                transcript += event.results[i][0].transcript;
+            }
+            chatInput.value = transcript;
+            chatInput.style.height = 'auto';
+            chatInput.style.height = Math.min(chatInput.scrollHeight, 160) + 'px';
+            // Auto-send when final result received
+            if (event.results[event.results.length - 1].isFinal) {
+                stopListening();
+                if (transcript.trim()) sendMessage();
+            }
+        };
+
+        recognition.onend = function() { stopListening(); };
+        recognition.onerror = function() { stopListening(); };
+
+        voiceMicBtn.addEventListener('click', function() {
+            if (isListening) {
+                recognition.stop();
+                stopListening();
+            } else {
+                startListening();
+            }
+        });
+    } else {
+        voiceMicBtn.style.display = 'none';
+    }
+
+    function startListening() {
+        isListening = true;
+        voiceMicBtn.classList.add('listening');
+        voiceMicBtn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>';
+        voiceMicBtn.title = 'Stop listening';
+        chatInput.placeholder = 'Listening...';
+        try { recognition.start(); } catch(e) { stopListening(); }
+    }
+
+    function stopListening() {
+        isListening = false;
+        voiceMicBtn.classList.remove('listening');
+        voiceMicBtn.innerHTML = '<i class="fa-solid fa-microphone"></i>';
+        voiceMicBtn.title = 'Voice input';
+        chatInput.placeholder = 'Ask about your health data, update preferences, log meals...';
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // MEAL PHOTO — Camera/upload → Vision LLM → auto-populate
+    // ═══════════════════════════════════════════════════════
+    mealPhotoBtn.addEventListener('click', function() { mealPhotoInput.click(); });
+
+    mealPhotoInput.addEventListener('change', function() {
+        if (!this.files || !this.files[0]) return;
+        var file = this.files[0];
+        if (file.size > 10 * 1024 * 1024) {
+            alert('Photo too large. Maximum 10MB.');
+            return;
+        }
+
+        // Show analyzing indicator
+        chatWelcome.style.display = 'none';
+        chatThread.style.display = 'flex';
+        chatTopbar.style.display = 'flex';
+        appendMessage('user', '📷 Analyzing meal photo...');
+        var analyzingMsg = createAssistantContainer();
+        var analyzingThinking = createThinkingIndicator('Analyzing your meal photo...');
+        analyzingMsg.querySelector('.chat-msg-body').appendChild(analyzingThinking);
+        scrollToBottom();
+
+        var formData = new FormData();
+        formData.append('photo', file);
+
+        fetch('/api/chat/meal-photo', {
+            method: 'POST',
+            body: formData
+        }).then(function(r) { return r.json(); }).then(function(result) {
+            analyzingThinking.remove();
+            if (result.error) {
+                var errDiv = document.createElement('div');
+                errDiv.className = 'chat-msg-content';
+                errDiv.textContent = result.error;
+                analyzingMsg.querySelector('.chat-msg-body').appendChild(errDiv);
+                return;
+            }
+
+            // Build a natural language meal log message from extracted data
+            var items = (result.items || []).map(function(item) {
+                return item.foodName + ' (' + item.quantity + ')';
+            }).join(', ');
+
+            var mealText = 'I had ' + items + ' for ' + (result.mealType || 'a meal').toLowerCase() +
+                '. Estimated ' + (result.totalEstimatedCalories || '?') + ' calories. ' +
+                '(Confidence: ' + (result.confidence || 'unknown') + '). Please log this to my diary.';
+
+            // Remove analyzing message and send as a real chat message
+            analyzingMsg.remove();
+            chatInput.value = mealText;
+            sendMessage();
+        }).catch(function(err) {
+            analyzingThinking.remove();
+            var errDiv = document.createElement('div');
+            errDiv.className = 'chat-msg-content';
+            errDiv.textContent = 'Failed to analyze the photo. Try typing your meal instead.';
+            analyzingMsg.querySelector('.chat-msg-body').appendChild(errDiv);
+        });
+
+        // Reset file input so the same file can be selected again
+        this.value = '';
+    });
 
 })();
 </script>
